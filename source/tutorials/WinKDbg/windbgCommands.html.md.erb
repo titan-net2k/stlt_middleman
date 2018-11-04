@@ -1,0 +1,45 @@
+---
+title: '2x: Common Windbg commands'
+---
+
+#<%= current_page.data.title %>
+
+
+| Address formats        |                                           | 
+|---|---|
+| `<address1> <address2>` | show memory between address1 and 2        | 
+| `<address>  L<nr>`       | show nr*size starting at address          | 
+| poi(`<address>`)         | show what address points at (MASM syntax) | 
+
+| Expression commands |                                                        | 
+|---|---|
+| ?                   | Evaluate MASM expression (unless configured otherwise) | 
+| ??                  | Evaluate c++ expression (unless configured otherwise)  | 
+
+| Breakpoints         |                                       | 
+|---|---|
+| bl                  | list breakpoints                      | 
+| be, bd, bc          | enable, disable, clear                | 
+| bc *                | delete all breakpoints                | 
+| bp                  | set at address                        | 
+| bu `<address/symbol>` | deferred bp, activated on module load | 
+| bm `<pattern>`        | set at all symbols matching pattern   | 
+
+| Dump memory address |                      |                               | 
+|---|---|---|
+| d  | dump                 |                               | 
+|    | a, u, b, p `<address>` | ascii, unicode, byte, pointer | 
+|  l  | t `<type>`             | type formatted `<address>`      | 
+
+
+| Registers           |                          | 
+|---|---|
+| r `<name>` [=content] | read or modify register  | 
+| rdmsr `<addr>`        | get msr register at addr | 
+
+| Disassembly |                     | 
+|---|---|
+| k           | show stack          | 
+| u           | unassemble          | 
+| uf          | unassemble function | 
+

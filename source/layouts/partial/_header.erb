@@ -1,0 +1,47 @@
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Use the title from a page's frontmatter if it has one -->
+    <title><%= current_page.data.title || "Middleman" %></title>
+    <%= stylesheet_link_tag "site" %>
+    <%= javascript_include_tag "site" %>
+  </head>
+
+<nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <%= link_to 'Home', '/index.html', class: 'navbar-item' %>
+
+    <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="navbar">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div id="navbar" class="navbar-menu">
+    <div class="navbar-start">
+       <%#= link_to 'Articles', '/articles/', class: 'navbar-item' %>
+
+      <div class="navbar-item has-dropdown is-hoverable">
+        <%= menu_link 'Tutorials', '/tutorials/', 'navbar-link' %>
+
+        <div class="navbar-dropdown">
+          <a class="navbar-item">
+            Windows Kernel Debugging
+          </a>
+          <a class="navbar-item">
+            Windows Exploitation
+          </a>
+          </div>
+      </div>
+      <%= menu_link 'About', '/site/about.html', 'navbar-item' %>
+      
+
+    </div>
+    <div class="navbar-end">
+      <%= link_to 'Reiseerzaehlungen (german)', 'https://reisewiki.stlt.de', class: 'navbar-item' %>
+    </div>
+  </div>
+</nav>

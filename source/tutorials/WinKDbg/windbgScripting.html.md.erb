@@ -1,0 +1,25 @@
+---
+title: '5: Windbg scripts'
+---
+
+#<%= current_page.data.title %>
+
+There are several ways to write scripts for Windbg and all of them `<del>`suck`</del>` come with significant downsides. It depends on your previous experience. If you love the Windbg commandline and want more of it's crazy sides choose classic Windbg Scripting. If you love batch files or the Powershell script with those. If you love Microsoft learn it's fancy new Javascript for Windbg Engine. If you hated all those options, try PyKd.
+
+## Windbg Scripts
+
+The obvious way is writing classic Windbg scripts. Those are basically just normal Windbg commands and a few control flow (meta-) commands. The easiest way to use classic Windbg script is by just chaining commands inside the Windbg command-line using '';'' as a separator. Once that gets complicated (after two or three commands) you can put them into a file and load it with the totally obvious command of `<nowiki>`$$>>`<ScriptLocation</nowiki>` or several variations depending on details of how your script should interact with Windbg. It is useful for creating macros of sorts, but trying to do anything advanced gets horrible fast. For instance you don't have variables, just the temporary t# registers and aliases that may or may not work as substitute for variables depending on the circumstances. Another problem is that everything inside a particular control flow block is put the Windbg command-line as a single line (separated by ';'). This lead to things like crashes that don't give any indication as to why they happened and side effects like things only really happening if you put them into arbitrary  blocks.
+
+## Javascript
+
+New Versions of Windbg and Windbg Preview come with a new and shiny JavaScript Scripting Engine. Why Microsoft would choose JavaScript to power a Debugger Scripting Engine is totally beyond me, but at least they are trying to provide a useful alternative to classic Windbg scripts. Unfortunately it has several downsides that held me off getting deeper into it. Instead of using Windbg commandline commands or something similar you have to get all information out of some JavaScript class structure. That makes it pretty useless in looking around places in the kernel you aren't supposed to look at, the kind of thing we are aiming at here. It is also rather complicated so you likely won't get anything useful done without spending a lot of time learning the framework around the scripting engine.
+
+## Commandline
+
+I haven't tried this one, but if you want you can script Windbg from the outside with cmd.exe/.bat or Powershell. 
+
+## PyKd
+
+A wrapper thingy between Windbg and Python. The documentation is a bit rough and also mostly in Russian. Otherwise the project looks pretty solid and actively maintained. After spending several hour just getting garbage errors out of classic Windbg scripts and several hours of reading documentation and trying to find out how to do anything in Windbg Javascript using PyKD gave me near instant success. And I don't even like python. 
+That's why PyKd will get it's own chapter [tutorials:winkdbg:page5a](tutorials/winkdbg/page5a) where I will show some basics on how to use it. 
+

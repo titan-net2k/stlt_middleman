@@ -1,0 +1,96 @@
+---
+title: '5a: PyKD'
+---
+
+#<%= current_page.data.title %>
+
+## Installation
+
+If you google Pykd you will probably find the projects archived CodePlex site at [https://archive.codeplex.com/?p=pykd] where you can find a link to it's current website [https://githomelab.ru/pykd](https///githomelab.ru/pykd). The documentation on how to install pykd is wrong or at least misleading in both places. What you really need is Python (2.7 is supposed to work, but didn't for me) and the "pykd bootstrapper".
+
+I got it to work by 
+ 1.  Installing Python 3.6.5 (AMD64)
+ 2.  Not installing / uninstalling python2
+ 3.  Installing pykd via pip
+ 4.  Copying the pykd bootstrapper from the "official" pykd gitlab ([https://githomelab.ru/pykd/pykd/wikis/Pykd-bootstrapper](https///githomelab.ru/pykd/pykd/wikis/Pykd-bootstrapper)) into the Windbg ''Winext'' directory.
+
+*  -> After loading the bootstrapper with ''.load pykd'' in Windbg I could execute python scripts with ''!py''. 
+
+Windbg Preview doesn't have a writable extension directory (yet?) so unless you want to fight Microsoft App Security it is better to just copy it somewhere else and load it via it's full path.
+
+## Basic Example
+
+I will start with a simple example parsing the ActiveProcessList from [tutorials:winkdbg:part4_processes](tutorials/winkdbg/part4_processes). It primarily uses ''pykd.dbgCommand'' to use pykd as a python wrapper around Windbg commandline commands. 
+
+`<spoiler | Code>`
+`<file python process1.py>`
+import pykd
+
+# Parsing the ProcessList with minimal pykd and lot's of debug output. 
+
+# 
+
+def firstNumberInString(string):
+	# meant to get the middle number out of Windbgs: "Evaluate expression: 1104 = 00000000`00000450"
+	return [int(s) for s in string.split() if s.isdigit()][0]
+
+if __name__ == "__main__":
+
+	if not pykd.isWindbgExt():
+		print("Script cannot be launched outside Windbg")
+		quit(0)
+
+	# Get PsActiveProcessHead
+	pActiveProcessHead = pykd.getOffset("nt!PsActiveProcessHead")
+	pykd.dprintln("PsActiveProcessHead: @ 0x%08x"%pActiveProcessHead)
+	
+	# Dereference PsActiveProcessHead == Forward link to first process 
+	initial_flink = pykd.ptrPtr(pActiveProcessHead)
+	pykd.dprintln("Initial Flink: @ 0x%08x"%initial_flink)
+	
+	# Get structure offsets
+	s = pykd.dbgCommand("? @@(#FIELD_OFFSET(nt!_EPROCESS,ActiveProcessLinks))")
+	offset_eprocess_activeProcesslinks = firstNumberInString(s)
+	pykd.dprintln("Offset EPROCESS-ActiveProcessLinks: " + str(offset_eprocess_activeProcesslinks))
+	s = pykd.dbgCommand("? @@(#FIELD_OFFSET(nt!_EPROCESS, ImageFileName))")
+	offset_eprocess_imageName = firstNumberInString(s)
+	pykd.dprintln("Offset EPROCESS-ImageName: " + str(offset_eprocess_imageName))
+	
+	# go through process list and print ImageNames
+	currentEntry  = pykd.ptrPtr(pActiveProcessHead)
+	while (currentEntry != pActiveProcessHead):
+		pykd.dprintln("Current Flink:  @ 0x%08x"%currentEntry)
+		pCurrentEProcessObject = currentEntry - offset_eprocess_activeProcesslinks
+		pykd.dprintln("Current EPROCESS address: @ 0x%08x"%pCurrentEProcessObject)
+		currentImageName = pykd.loadCStr( pCurrentEProcessObject + offset_eprocess_imageName )
+		pykd.dprintln("Current ImageName: "  + currentImageName)
+		
+		currentEntry = pykd.ptrPtr(pCurrentEProcessObject + offset_eprocess_activeProcesslinks)
+		
+	pykd.dprintln("Done")
+`</file>`
+`</spoiler>`
+
+Using pykd features this becomes dead simple: 
+`<spoiler | Code>`
+`<file python process2.py>`
+import pykd
+
+# Parsing the ProcessList with pykd
+
+if __name__ == "__main__":
+
+	if not pykd.isWindbgExt():
+		print("Script cannot be launched outside Windbg")
+		quit(0)
+
+	pActiveProcessList = pykd.getOffset("nt!PsActiveProcessHead")
+	#pActiveProcessList = pykd.module("nt").PsActiveProcessHead
+	processList = pykd.typedVarList(pActiveProcessList, "nt!_EPROCESS", "ActiveProcessLinks" )
+
+	for i, process in enumerate(processList):
+		pykd.dprint("Process " + str(i)+":")
+		name=pykd.loadCStr(process.ImageFileName)
+		print(name)
+`</file>`
+`</spoiler>`

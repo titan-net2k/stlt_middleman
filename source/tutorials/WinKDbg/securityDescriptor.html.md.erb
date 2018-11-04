@@ -1,0 +1,15 @@
+---
+title: '4c: Security Descriptors'
+---
+
+#<%= current_page.data.title %>
+
+This chapter is a security focused exercise that build upon the objects chapter. 
+
+## Windows object security 
+
+[{{:tutorials:winkdbg:winlogon_security_annotated.png?direct&600|This is how the underlying concepts maps to the permission screen.}}]
+
+Each securable object in windows has a security descriptor. Each security desciptor contains the owner SID, group SID DACL and SACL. The discretionary access control list (DACL) is a list of access control entries (ACEs) that control other SIS's permission on the object. The system access control list (SACL) contains ACEs that define which kinds of access are logged. 
+
+In this way very detailed permissions can be set, ranging from "Paul can write to this file": write permission on file object for user Paul to "Everyone can copy secret domain information": replication-of-secret-domain-information permission on domain object for everyone.

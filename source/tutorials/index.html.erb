@@ -1,0 +1,13 @@
+---
+title: Tutorial Series
+---
+
+<h1><%= current_page.data.title %></h1>
+
+
+<ul>
+<% current_page.children.each do |page| %>
+  <li><%= link_to page.data.title, page.url %> - <%=page.children.count %> episodes</li>
+<% end %>
+</ul>
+
