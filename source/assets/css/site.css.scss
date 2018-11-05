@@ -1,8 +1,6 @@
-@import "bulma/css/bulma.css";
-//@import "bulma/bulma.sass";
+//@import "bulma/css/bulma.css";
+@import "bulma/theme/bulmaswatch_sandstone.min.css";
 
-//body {
-  //font: 100% Helvetica, sans-serif;
-  //background-color: #efefef;
-//}
-
+.s-pad-1 {
+    padding-top: 1.5rem;
+}
