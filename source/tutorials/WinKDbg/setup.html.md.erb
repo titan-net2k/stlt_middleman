@@ -2,9 +2,10 @@
 title: 1. Setting up Kernel Debugging 
 ---
 
-#<%= current_page.data.title %>
+# <%= current_page.data.title %>
 
 <details><summary>Checklist</summary>
+  <div markdown="1" class="notification is-dark">
 
 Quick rundown what you have to do to set up a kernel debugging session:
 
@@ -18,7 +19,7 @@ Quick rundown what you have to do to set up a kernel debugging session:
   * This one will definitely need an internet connection
 3. Check network settings. 
      
-    ```bash
+  ```bash
     # On Debugger:
     netsh interface ipv4 show config
     -> get IP of Host-Only network adapter 
@@ -30,7 +31,7 @@ Quick rundown what you have to do to set up a kernel debugging session:
 
     # Once again on the debugger:
     netsh advfirewall firewall delete rule name="ICMP Allow incoming V4 echo request"
-    ```
+  ```
 
 4. Set up debugging more on the debugee 
   * Open an elevated command prompt 
@@ -49,10 +50,8 @@ Quick rundown what you have to do to set up a kernel debugging session:
   2. On the debugger go to the windows app store and install WinDbg Preview
   3. Open WinDbg Preview, select kernel debugging and put in the port and key from above
 
+</div>
 </details>
-
-
-
 
 
 ## 1.1 Create a virtual windows
@@ -61,9 +60,9 @@ There are several **hypervisor** solutions to choose from. Main choices are Vmwa
 
 I used Virtualbox while writing this guide. (And switched to Vmware Workstation while writing the -Exploitation- tutorials, because it offers virtualization of certain security features that Virtualbox doesn'tl)
 
-Microsoft provides [[https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/ | premade virtual machines]] for browser testing. There is also a github page [[https://github.com/magnetikonline/linux-microsoft-ie-virtual-machines]] with links to previous versions. If you want you can also grab the Media Creation tool ([[https://www.microsoft.com/en-us/software-download/windows10]]), download a windows 10 image and install by hand. Without a valid key both options will run unactivated for 90/180 days then you will have to start again. The trial period may need to be activated by running `slmgr /rearm` inside an elevated command prompt while connected to the internet. As another obscure feature the Edge preview machines have autologon enabled, you can configure it by running `netplwiz`.
+Microsoft provides [premade virtual machines](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)for browser testing. There is also a github page <https://github.com/magnetikonline/linux-microsoft-ie-virtual-machines> with links to previous versions. If you want you can also grab the Media Creation tool <https://www.microsoft.com/en-us/software-download/windows10>, download a windows 10 image and install by hand. Without a valid key both options will run unactivated for 90/180 days then you will have to start again. The trial period may need to be activated by running `slmgr /rearm` inside an elevated command prompt while connected to the internet. As another obscure feature the Edge preview machines have autologon enabled, you can configure it by running `netplwiz`.
 
-Microsoft also provides [[https://developer.microsoft.com/de-de/windows/downloads/virtual-machines| premade development environmets]]. These come with visual studio and lot's of other stuff and may be interesting if you want to set up a virtual machine for development. For pure debugging they are overkill.
+Microsoft also provides [premade development environmets](https://developer.microsoft.com/de-de/windows/downloads/virtual-machines). These come with visual studio and lot's of other stuff and may be interesting if you want to set up a virtual machine for development. For pure debugging they are overkill.
 
 For an ideal setup you will need two virtual machines: one will act as a "Debuggee" and one as a "Debugger" (//"vm-to-vm debugging"//). If you don't plan on doing serious forensic work and run windows anyway you can also use your host as debugger (//"host-to-vm debugging"//). 
 
@@ -73,7 +72,7 @@ I will test anything I will write about in the next parts on a Windows 10 1709. 
 
 ## 1.3 Set up network debugging
 
-There are several ways to attach a windows machine to a debugger: Serial, firewire, USB and network cable. The best way to debug virtual machines use to be //VirtualKD 3.0// ([[http://virtualkd.sysprogs.org]])), a toolkit that set up a debugging session over a virtual serial cable, provided a useful interface to view running debugees and did some magic to speed up the serial connection. Unfortunately it is pretty much unmaintained and getting old. It will likely not work with a current version of VirtualBox and Windows 10 (didn't for me) and even if you get it to work it may just break again with the next Windows release. 
+There are several ways to attach a windows machine to a debugger: Serial, firewire, USB and network cable. The best way to debug virtual machines use to be //VirtualKD 3.0// <http://virtualkd.sysprogs.org>), a toolkit that set up a debugging session over a virtual serial cable, provided a useful interface to view running debugees and did some magic to speed up the serial connection. Unfortunately it is pretty much unmaintained and getting old. It will likely not work with a current version of VirtualBox and Windows 10 (didn't for me) and even if you get it to work it may just break again with the next Windows release. 
 Which isn't much of a problem because since windows 8 we can use kernel debugging over network, which works pretty great and the setup isn't all that difficult anyway. 
 
 The actual steps:
@@ -82,29 +81,29 @@ The actual steps:
   3. [optional] Check network connection 
   
   ```bash
-  ipconfig /all
-  netsh interface ipv4 show config
-  -> ping
+    ipconfig /all
+    netsh interface ipv4 show config
+    -> ping
 
-  # Enable and disable ping through the firewall:
-  netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow
-  netsh advfirewall firewall delete rule name="ICMP Allow incoming V4 echo request"
+    # Enable and disable ping through the firewall:
+    netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow
+    netsh advfirewall firewall delete rule name="ICMP Allow incoming V4 echo request"
 
-  # Optionally: Set up static ip
-  netsh interface show interface
-  netsh interface ipv4 set address name="<name>" static <IP> <SUBNET_MASK> <GATEWAY>
+    # Optionally: Set up static ip
+    netsh interface show interface
+    netsh interface ipv4 set address name="<name>" static <IP> <SUBNET_MASK> <GATEWAY>
   ```
   4. Activate kernel debugging 
   
   ```bash
-  bcdedit /debug on
-  bcdedit /dbgsettings net hostip:<DEBUGGER IP> port:<PORT between 49152 and 65535>
-  # -> this returns a key you have to copy/paste onto the debugger
-  # Example for the default Virtualbox host network:
-  bcdedit /dbgsettings net hostip:192.168.56.1 port:50001 key:the.secret.debug.key 
+    bcdedit /debug on
+    bcdedit /dbgsettings net hostip:<DEBUGGER IP> port:<PORT between 49152 and 65535>
+    # -> this returns a key you have to copy/paste onto the debugger
+    # Example for the default Virtualbox host network:
+    bcdedit /dbgsettings net hostip:192.168.56.1 port:50001 key:the.secret.debug.key 
 
-  # For multiple network cards you may need to set an additional parameter, the busparams are under "location" in the device manager:
-  bcdedit /set "{dbgsettings}" busparams <X.Y.Z>
+    # For multiple network cards you may need to set an additional parameter, the busparams are under "location" in the device manager:
+    bcdedit /set "{dbgsettings}" busparams <X.Y.Z>
   ```
   5. **Shutdown virtual debugee machine** (absolutely needed in Virtualbox, otherwise nothing will happen)
   6. Start the Debugee and it should hang and wait for a debugger to listen on the given IP and port
@@ -112,27 +111,25 @@ The actual steps:
 
 ## 1.3 Set up the Debugger 
 
-The basic tool for windows kernel debugging is Microsoft's Windbg. It gives easy access to the kernel symbol files ((Symbol files contain names for functions and variables. So fffff800`4aa718a0 becomes nt!NtCreateFile. Without them there will be no 
-.)) 
-as well as commands that let you dig into windows internals in ways that are difficult if not impossible any other way. You may switch to other debuggers for advanced tasks later (IDA + Windbg plugins sounds interesting) but you will always need Windbg. 
+The basic tool for windows kernel debugging is Microsoft's Windbg. It gives easy access to the kernel symbol files (Symbol files contain names for functions and variables. So fffff800`4aa718a0 becomes nt!NtCreateFile) as well as commands that let you dig into windows internals in ways that are difficult if not impossible any other way. You may switch to other debuggers for advanced tasks later (IDA + Windbg plugins sounds interesting) but you will always need Windbg. 
 
 It comes in two flavors: The original Windbg that looks like straight out of Windows 2000 and Windbg Preview with //"more modern visuals"// and a few other new features but the same underlying engine. And quiet a few bugs. Nothing overly dramatic but still annoying. For now I would recommend using the old one for this tutorial and once you mastered it you can start playing around with the Preview.
 
-The preview has to be installed from the Windows (App) Store. Windbg can be installed via the latest (or any) the Windows Driver Kit. Or even better the Enterprise driver kit (https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk) which is basically the same in a portable blob. Windbg.exe is hidden somewhere inside (Program Files → Windows Kits → 10 → Debug → x64… something like that)
+The preview has to be installed from the Windows (App) Store. Windbg can be installed via the latest (or any) the Windows Driver Kit. Or even better the Enterprise driver kit <https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk> which is basically the same in a portable blob. Windbg.exe is hidden somewhere inside (Program Files → Windows Kits → 10 → Debug → x64… something like that)
 
 Just create a link to your debugger and add `-k net:port=<PORT>,key=<KEY>` as commandline parameter to quickly launch your kernel debugging session. Add `-d` if you want an initial breakpoint.
 
 As soon as the debugger is connected you should set up your symbol path. You can set it as a system variable or in the WinDbg or WinDbg Preview((For me Windbg Preview read the symbol path from the system variable but forgot it immediately afterwards.)) GUI.
 
 ```bash
-# Administrative cmd or powershell:
-setx /m _NT_SYMBOL_PATH "SRV*c:\symbols*http://msdl.microsoft.com/download/symbols"
+  # Administrative cmd or powershell:
+  setx /m _NT_SYMBOL_PATH "SRV*c:\symbols*http://msdl.microsoft.com/download/symbols"
 
-# If you want a clean way to add your own symbols:
-setx /m _NT_SYMBOL_PATH "c:\Symbols_mySymbols;SRV*c:\Symbols*http://msdl.microsoft.com/download/symbols"
+  # If you want a clean way to add your own symbols:
+  setx /m _NT_SYMBOL_PATH "c:\Symbols_mySymbols;SRV*c:\Symbols*http://msdl.microsoft.com/download/symbols"
 
-# Or with the true powershell command:
-[Environment]::SetEnvironmentVariable("_NT_SYMBOL_PATH", "c:\Symbols_mySymbols;SRV*c:\Symbols*http://msdl.microsoft.com/download/symbols", "Machine")
+  # Or with the true powershell command:
+  [Environment]::SetEnvironmentVariable("_NT_SYMBOL_PATH", "c:\Symbols_mySymbols;SRV*c:\Symbols*http://msdl.microsoft.com/download/symbols", "Machine")
 ```
 
 The first folder is optional if you have your own symbol files from app or driver development. The //SRV*// folder is where Windbg stores any symbols it got from the Microsoft symbol store. This is the reason the debugger needs an internet connection at least until you downloaded the symbols you need.

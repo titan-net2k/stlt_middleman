@@ -2,28 +2,28 @@
 title: '0: Checklists'
 ---
 
-#<%= current_page.data.title %>
+# <%= current_page.data.title %>
 
 ## Debugger
 
 *Everything that should be installed on a debugging machine*
 
 
-*  [https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk](https///docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk) EWDK -> Classic Windbg
+*  <https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk> EWDK -> Classic Windbg
 
 *  AppStore -> Windbg Preview
 
-*  [https://githomelab.ru/pykd/pykd/wikis/Pykd-bootstrapper](https///githomelab.ru/pykd/pykd/wikis/Pykd-bootstrapper) PyKD bootstrapper  -> ..\Windows Kits\10\Debuggers\x64\winext\
+*  <https://githomelab.ru/pykd/pykd/wikis/Pykd-bootstrapper> PyKD bootstrapper  -> ..\Windows Kits\10\Debuggers\x64\winext\
 
-*  [https://www.python.org/downloads/windows/](https///www.python.org/downloads/windows/) -> Python 3 
+*  <https://www.python.org/downloads/windows/> -> Python 3 
 
 *  ''pip install pykd'' -> PyKD
 
-*  [https://docs.microsoft.com/en-us/sysinternals/](https///docs.microsoft.com/en-us/sysinternals/) -> Sysinternals
+*  <https://docs.microsoft.com/en-us/sysinternals/> -> Sysinternals
 
-*  [https://www.hex-rays.com/products/ida/support/download_freeware.shtml](https///www.hex-rays.com/products/ida/support/download_freeware.shtml) -> Ida free
+*  <https://www.hex-rays.com/products/ida/support/download_freeware.shtml> -> Ida free
 
-*  [https://notepad-plus-plus.org](https///notepad-plus-plus.org) -> Notepad++
+*  <https://notepad-plus-plus.org> -> Notepad++
 
 ## Exploit Dev
 
@@ -65,14 +65,14 @@ title: '0: Checklists'
 
 *  Disable Secure Boot (''Settings -> Security -> Secure Boot'')
 
-	
+```	
 	# No dhcp on private network
 	netsh interface ipv4 show interfaces
 	netsh interface ip set address "Ethernet 1" static 192.168.0.2 255.255.255.0 192.168.0.1
 	
 	bcdedit /debug on
 	bcdedit /dbgsettings net hostip:192.168.0.1 port:50001 key:the.secret.debug.key 
-	
+```	
 
 
 ### Debugger
@@ -81,11 +81,10 @@ title: '0: Checklists'
 *  Create new virtual machine on that network, install windows or import virtual disk from edge virtual machines
 
 	
-	
+```	
 	netsh interface ip set address "Ethernet 1" static 192.168.0.1 255.255.255.0
-
+```
 
 
 *  Create symbol folders
 
-*  Download [toolz](toolz)

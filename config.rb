@@ -16,9 +16,13 @@ page '/*.txt', layout: false
 page "/tutorials/*", :layout => "tutorial"
 
 require 'redcarpet'
-set :markdown_engine, :redcarpet
-set :markdown, :tables => true, :autolink => true, :gh_blockcode => true, :fenced_code_blocks => true, :with_toc_data => true
-#set :markdown, :fenced_code_blocks => true, :smartypants => true
+activate :syntax
+set :markdown_engine, :kramdown
+set :markdown, input: 'GFM'#,parse_block_html: true
+
+#set :markdown_engine, :redcarpet
+#set :markdown, tables: true, autolink: true, with_toc_data: true, no_intra_emphasis: true, fenced_code_blocks: true, lax_spacing: true
+#set :markdown, :fenced_code_blocks => true, :smartypants => true, :gh_blockcode => true, :fenced_code_blocks => true,
 
 activate :livereload
 
@@ -62,16 +66,23 @@ helpers Helpers
 # Build-specific configuration
 # https://middlemanapp.com/advanced/configuration/#environment-specific-settings
 
-# configure :build do
-#   activate :minify_css
-#   activate :minify_javascript
-# end
-
 configure :development do
   set :debug_assets, true
   config[:host] = "http://localhost:4567"
 end
 
 configure :build do
-  config[:host] = "https://www.stlt.de"
+  config[:host] = "https://www.stl-tec.de"
+
+  #activate :minify_css
+  #activate :minify_javascript
+end
+
+activate :deploy do |deploy|
+  deploy.deploy_method   = :sftp
+  deploy.host            = ENV['middleman_host']
+  deploy.path            = '/'
+  deploy.port            = 21
+  deploy.user            = ENV['middleman_user']
+  deploy.password        = ENV['middleman_password']
 end

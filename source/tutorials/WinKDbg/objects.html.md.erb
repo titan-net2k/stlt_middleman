@@ -2,83 +2,83 @@
 title: '4b: Objects and Handles'
 ---
 
-#<%= current_page.data.title %>
+# <%= current_page.data.title %>
 
 In chapter [tutorials:winkdbg:page3](tutorials/winkdbg/page3) I already mentioned objects and handles and in [tutorials:winkdbg:part4_processes](tutorials/winkdbg/part4_processes) we looked at the handle table the processExplorer shows for every process and played around with the EPROCESS objects. Now it is time to look at all that more closely.
 
-	:::cpp
+~~~ cpp
 	!process 0 0 notepad.exe
 	-> get address of process object
-	dt nt!_EPROCESS `<address>`
-
+	dt nt!_EPROCESS <address>
+~~~
 
 We did that already.. it gives us the executive process object. And at the same address we can find the kernel process object _KPROCESS. But where is the object "metadata"? Of course a simple google search will tell us but let's just play dumb and try to find out by using our debugging knowledge. All we need is the secret Windbg trick of using dt with a ''*'':
 
-	:::cpp
-	kd> dt nt!_OBJECT*
-	          ntkrnlmp!_OBJECT_HANDLE_INFORMATION
-	          ntkrnlmp!_OBJECT_ATTRIBUTES
-	          ntkrnlmp!_OBJECT_TYPE
-	          ntkrnlmp!_OBJECT_HEADER
-	          ntkrnlmp!_OBJECT_HEADER_QUOTA_INFO
-	          ntkrnlmp!_OBJECT_HEADER_PROCESS_INFO
-	          ntkrnlmp!_OBJECT_HEADER_HANDLE_INFO
-	          ntkrnlmp!_OBJECT_HEADER_NAME_INFO
-	          ntkrnlmp!_OBJECT_HEADER_CREATOR_INFO
-	          ntkrnlmp!_OBJECT_HEADER_AUDIT_INFO
-	          ntkrnlmp!_OBJECT_HEADER_EXTENDED_INFO
-	          ntkrnlmp!_OBJECT_FOOTER
-	          ntkrnlmp!_OBJECT_DIRECTORY
-	          ntkrnlmp!_OBJECT_INFORMATION_CLASS
-	          ntkrnlmp!_OBJECT_NAMESPACE_LOOKUPTABLE
-	          ntkrnlmp!_OBJECT_TYPE_INITIALIZER
-	          ntkrnlmp!_OBJECT_HANDLE_COUNT_DATABASE
-	          ntkrnlmp!_OBJECT_NAME_INFORMATION
-	          ntkrnlmp!_OBJECT_REF_INFO
-	          ntkrnlmp!_OBJECT_SYMBOLIC_LINK
-	          ntkrnlmp!_OBJECT_REF_STACK_INFO
-	          ntkrnlmp!_OBJECT_DIRECTORY_ENTRY
-	          ntkrnlmp!_OBJECT_HANDLE_COUNT_ENTRY
-	          ntkrnlmp!_OBJECT_CREATE_INFORMATION
-	          ntkrnlmp!_OBJECT_DUMP_CONTROL
-	          ntkrnlmp!_OBJECT_REF_TRACE
-	          ntkrnlmp!_OBJECT_HEADER_PADDING_INFO
-
+~~~ cpp
+kd> dt nt!_OBJECT*
+      ntkrnlmp!_OBJECT_HANDLE_INFORMATION
+      ntkrnlmp!_OBJECT_ATTRIBUTES
+      ntkrnlmp!_OBJECT_TYPE
+      ntkrnlmp!_OBJECT_HEADER
+      ntkrnlmp!_OBJECT_HEADER_QUOTA_INFO
+      ntkrnlmp!_OBJECT_HEADER_PROCESS_INFO
+      ntkrnlmp!_OBJECT_HEADER_HANDLE_INFO
+      ntkrnlmp!_OBJECT_HEADER_NAME_INFO
+      ntkrnlmp!_OBJECT_HEADER_CREATOR_INFO
+      ntkrnlmp!_OBJECT_HEADER_AUDIT_INFO
+      ntkrnlmp!_OBJECT_HEADER_EXTENDED_INFO
+      ntkrnlmp!_OBJECT_FOOTER
+      ntkrnlmp!_OBJECT_DIRECTORY
+      ntkrnlmp!_OBJECT_INFORMATION_CLASS
+      ntkrnlmp!_OBJECT_NAMESPACE_LOOKUPTABLE
+      ntkrnlmp!_OBJECT_TYPE_INITIALIZER
+      ntkrnlmp!_OBJECT_HANDLE_COUNT_DATABASE
+      ntkrnlmp!_OBJECT_NAME_INFORMATION
+      ntkrnlmp!_OBJECT_REF_INFO
+      ntkrnlmp!_OBJECT_SYMBOLIC_LINK
+      ntkrnlmp!_OBJECT_REF_STACK_INFO
+      ntkrnlmp!_OBJECT_DIRECTORY_ENTRY
+      ntkrnlmp!_OBJECT_HANDLE_COUNT_ENTRY
+      ntkrnlmp!_OBJECT_CREATE_INFORMATION
+      ntkrnlmp!_OBJECT_DUMP_CONTROL
+      ntkrnlmp!_OBJECT_REF_TRACE
+      ntkrnlmp!_OBJECT_HEADER_PADDING_INFO
+~~~
 
 Apparently there are quite a few object related structures. 
 
-	:::cpp
-	kd> dt nt!_OBJECT_HEADER
-	   +0x000 PointerCount     : Int8B
-	   +0x008 HandleCount      : Int8B
-	   +0x008 NextToFree       : Ptr64 Void
-	   +0x010 Lock             : _EX_PUSH_LOCK
-	   +0x018 TypeIndex        : UChar
-	   +0x019 TraceFlags       : UChar
-	   +0x019 DbgRefTrace      : Pos 0, 1 Bit
-	   +0x019 DbgTracePermanent : Pos 1, 1 Bit
-	   +0x01a InfoMask         : UChar
-	   +0x01b Flags            : UChar
-	   +0x01b NewObject        : Pos 0, 1 Bit
-	   +0x01b KernelObject     : Pos 1, 1 Bit
-	   +0x01b KernelOnlyAccess : Pos 2, 1 Bit
-	   +0x01b ExclusiveObject  : Pos 3, 1 Bit
-	   +0x01b PermanentObject  : Pos 4, 1 Bit
-	   +0x01b DefaultSecurityQuota : Pos 5, 1 Bit
-	   +0x01b SingleHandleEntry : Pos 6, 1 Bit
-	   +0x01b DeletedInline    : Pos 7, 1 Bit
-	   +0x01c Reserved         : Uint4B
-	   +0x020 ObjectCreateInfo : Ptr64 _OBJECT_CREATE_INFORMATION
-	   +0x020 QuotaBlockCharged : Ptr64 Void
-	   +0x028 SecurityDescriptor : Ptr64 Void
-	   +0x030 Body             : _QUAD
-
+~~~ cpp
+kd> dt nt!_OBJECT_HEADER
+   +0x000 PointerCount     : Int8B
+   +0x008 HandleCount      : Int8B
+   +0x008 NextToFree       : Ptr64 Void
+   +0x010 Lock             : _EX_PUSH_LOCK
+   +0x018 TypeIndex        : UChar
+   +0x019 TraceFlags       : UChar
+   +0x019 DbgRefTrace      : Pos 0, 1 Bit
+   +0x019 DbgTracePermanent : Pos 1, 1 Bit
+   +0x01a InfoMask         : UChar
+   +0x01b Flags            : UChar
+   +0x01b NewObject        : Pos 0, 1 Bit
+   +0x01b KernelObject     : Pos 1, 1 Bit
+   +0x01b KernelOnlyAccess : Pos 2, 1 Bit
+   +0x01b ExclusiveObject  : Pos 3, 1 Bit
+   +0x01b PermanentObject  : Pos 4, 1 Bit
+   +0x01b DefaultSecurityQuota : Pos 5, 1 Bit
+   +0x01b SingleHandleEntry : Pos 6, 1 Bit
+   +0x01b DeletedInline    : Pos 7, 1 Bit
+   +0x01c Reserved         : Uint4B
+   +0x020 ObjectCreateInfo : Ptr64 _OBJECT_CREATE_INFORMATION
+   +0x020 QuotaBlockCharged : Ptr64 Void
+   +0x028 SecurityDescriptor : Ptr64 Void
+   +0x030 Body             : _QUAD
+~~~
 
 This gives us quite a lot of information. There is a handle counter and a pointer counter. As I already mentioned the kernel doesn't hand out pointers to object but handles. But the kernel can access the object by pointers, that's why there is also a pointer counter. Then there is a thingy declaring the object type, some flags, a security descriptor and 0x30 bytes after the header we find a body. 
 
 So.. what if we already have a body and are looking for a header? 
 
-	:::cpp
+~~~ cpp
 	!process 0 0 notepad.exe
 	-> get address of process object
 	dt nt!_OBJECT_HEADER `<address>`-0x30
@@ -88,34 +88,48 @@ So.. what if we already have a body and are looking for a header?
 	   +0x010 Lock             : _EX_PUSH_LOCK
 	   +0x018 TypeIndex        : 0x41 'A'
 	    ...
-
+~~~
 
 So in my case there are six user mode entities that have acquired handles to notepad. Eventually we want to find out more about who those are and how handles work, but for now let's take a look at the type. Of course we already know the type of my example object, but it sounds very interesting to find out what other types of objects there are. 
 
-`<note tip>`Use x to find the object type table.`</note>`
+<div class="message is-info">
+	<div class="message-header">
+    <p>Exercise</p>
+  </div>
+  <div class="message-body">
+   Use x to find the object type table.
+  </div>
+</div>
 
-`<spoiler|solution>`
+<details>
+<summary>Solution</summary>
+<div markdown="1" class="notification is-dark">
+
 Of course it's not called ObjectTypeSomething.. it is still Microsoft after all.
 
-	:::cpp
+~~~ cpp
 	kd> x nt!*TypeIndex*
-	fffff801`c8c87920 nt!ObTypeIndexTable = `<no type information>`
+	fffff801`c8c87920 nt!ObTypeIndexTable = <no type information>
+~~~
+</div>
+</details>
 
-`</spoiler>`
+
 
 Closer look:
 
-	:::cpp
+~~~ cpp
 	kd> dp nt!ObTypeIndexTable
 	fffff801`c8c87920  00000000`00000000 ffffaa80`3e3f6000
 	fffff801`c8c87930  ffff830c`23ad3670 ffff830c`23a4c630
 	fffff801`c8c87940  ffff830c`23a49900 ffff830c`23a50ac0
 	fffff801`c8c87950  ffff830c`23ab93c0 ffff830c`23ab9260
 	fffff801`c8c87960  ffff830c`23a47080 ffff830c`23a47240
+~~~
 
 -> looks like a table. And if we look at all our ObjectSomething structure we can take an educates guess where the entries point at: nt!_OBJECT_TYPE.
 
-	:::cpp
+~~~ cpp
 	
 	kd> dt nt!_OBJECT_TYPE poi(nt!ObTypeIndexTable+0x41*8)
 	   +0x000 TypeList         : _LIST_ENTRY [ 0xffff830c`2584f440 - 0xffff830c`2584f440 ]
@@ -130,13 +144,22 @@ Closer look:
 	   +0x0b8 TypeLock         : _EX_PUSH_LOCK
 	   +0x0c0 Key              : 0x67655256
 	   +0x0c8 CallbackList     : _LIST_ENTRY [ 0xffff830c`2584f508 - 0xffff830c`2584f508 ]
-
+~~~
 
 "VRegConfigurationContext". What the f**? Shouldn't that be "Process"?
 
-`<note tip>`Exercise: Find out what if going on!`</note>`
+<div class="message is-info">
+	<div class="message-header">
+    <p>Exercise</p>
+  </div>
+  <div class="message-body">
+   Find out what if going on!
+  </div>
+</div>
 
-`<spoiler| Tip>`
+
+<details><summary>Tip</summary>
+<div markdown="1" class="notification is-dark">
 There may be better solutions, I can only suggest brute force:
 
 *  Search the kernel code (ntoskrnl.exe) for all references to ObTypeIndexTable
@@ -145,12 +168,15 @@ There may be better solutions, I can only suggest brute force:
 
 *  Search for Object (Ob..) related functions that sound like they reference the ObTypeIndexTable
 
-`</spoiler>`
+</div>
+</details>
 
-`<spoiler | Code>`
+<details><summary>Code</summary>
+<div markdown="1" class="notification is-dark">
+
 There are other functions that contain the same code, the easiest to read is "ObGetObjectType" because it does nothing else besides referencing the ObTypeIndexTable. 
 
-	:::asm
+~~~ asm
 	kd> uf ObGetObjectType
 	nt!ObGetObjectType:
 	fffff801`c8dfb6f0 488d41d0        lea     rax,[rcx-30h]
@@ -163,52 +189,60 @@ There are other functions that contain the same code, the easiest to read is "Ob
 	fffff801`c8dfb70c 488d0d0dc2e8ff  lea     rcx,[nt!ObTypeIndexTable (fffff801`c8c87920)]
 	fffff801`c8dfb713 488b04c1        mov     rax,qword ptr [rcx+rax*8]
 	fffff801`c8dfb717 c3              ret
+~~~
 
-`</spoiler>`
+</div>
+</details>
 
-`<spoiler| Solution>`
+<details><summary>Solution</summary>
+<div markdown="1" class="notification is-dark">
+
 The -0x30 should be immediately familiar. And since 0x30-0x18=0x18 we need:
 
-	:::cpp
+~~~ cpp
 	kd> dt nt!_OBJECT_HEADER
 	   +0x000 PointerCount     : 0n196506
 	   ...
 	   +0x018 TypeIndex        : UChar
 	   ...
 	   +0x030 Body             : _QUAD
+~~~
 
 So.. the Address of the Object Header is right shifted by 1 byte and the lower byte of the result xor'ed with the TypeIndex.. and the result is xor'ed with the lowest byte of "nt!ObHeaderCookie". The result is the index to the table. Why? I have no idea((Window Internals 7th edition part 2 may tell us, but it's not published yet.)).
 
 This is what it look like for me:
 
-object address: ffff830c2831e080
-0: kd> dp ffff830c2831e080-0x30 L1
-ffff830c`2831e050  00000000`0002ff9a
-0: kd> dp nt!ObHeaderCookie L1
-fffff801`c8c87340  00000000`e6a5d3a6
-0: kd> ? (e0 xor 41) xor a6
-Evaluate expression: 7 = 00000000`00000007
+~~~ cpp
+	object address: ffff830c2831e080
+	0: kd> dp ffff830c2831e080-0x30 L1
+	ffff830c`2831e050  00000000`0002ff9a
+	0: kd> dp nt!ObHeaderCookie L1
+	fffff801`c8c87340  00000000`e6a5d3a6
+	0: kd> ? (e0 xor 41) xor a6
+	Evaluate expression: 7 = 00000000`00000007
 
-..
-kd> dt nt!_OBJECT_TYPE poi(nt!ObTypeIndexTable+0x07*8)
-    +0x000 TypeList         : _LIST_ENTRY [ 0xffff830c`23ab9260 - 0xffff830c`23ab9260 ]
-    +0x010 Name             : _UNICODE_STRING "Process"
+	..
+	kd> dt nt!_OBJECT_TYPE poi(nt!ObTypeIndexTable+0x07*8)
+	    +0x000 TypeList         : _LIST_ENTRY [ 0xffff830c`23ab9260 - 0xffff830c`23ab9260 ]
+	    +0x010 Name             : _UNICODE_STRING "Process"
 
-# single line command:
+	# single line command:
 
-r $t0 = `<object address>`
-? ((((@$t0-30) >> 8) and ff ) xor (poi(@$t0-30+18) and ff)) xor (poi(nt!ObHeaderCookie) and ff)
+	r $t0 = <object address>
+	? ((((@$t0-30) >> 8) and ff ) xor (poi(@$t0-30+18) and ff)) xor (poi(nt!ObHeaderCookie) and ff)
 
 
-`</code>`
+~~~
 Pfew. Done for today! No homework!
-`</spoiler>`
+
+</div>
+</details>
 
 # ObTypeIndexTable
 
 Before we got sidetracked by that that ObjectTypeIndexTable indexes mystery we where trying to find out what other object types there are. And if we browse around that table we will find the usual suspects: directory, process, thread etc. But also strange ones, like "type". There is a ObjectType called Type. 
 
-	
+~~~cpp
 	0: kd> dt nt!_OBJECT_TYPE Name poi(nt!ObTypeIndexTable+0x2*8)
 	   +0x010 Name : _UNICODE_STRING "Type"
 	0: kd> dt nt!_OBJECT_TYPE Name poi(nt!ObTypeIndexTable+0x3*8)
@@ -222,13 +256,13 @@ Before we got sidetracked by that that ObjectTypeIndexTable indexes mystery we w
 	0: kd> dt nt!_OBJECT_TYPE Name poi(nt!ObTypeIndexTable+0x7*8)
 	   +0x010 Name : _UNICODE_STRING "Process"
 	...
-
+~~~
 
 Or print out all of them:
 
-	
+~~~cpp
 	.for (r $t0=2;@$t0<0x44;r $t0=@$t0+1) { ?? @$t0; dt nt!_OBJECT_TYPE Name poi(nt!ObTypeIndexTable+$t0*8) }
-	
+~~~	
 
 
 # Security Descriptor

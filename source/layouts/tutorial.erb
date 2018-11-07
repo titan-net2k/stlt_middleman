@@ -3,10 +3,10 @@
   <%= partial 'layouts/partial/header' %>
 
   <body>
-
+  	<div class="container">
   	<div class="columns">
 
-		<aside class="column is-2 is-narrow-mobile is-fullheight section is-hidden-mobile">
+		<aside class="column is-2 is-fullheight section is-hidden-mobile">
 		    <p class="menu-label is-hidden-touch">Tutorials</p>
 		    <ul class="menu-list">
 		    <% sitemap.find_resource_by_path('tutorials/index.html').children.each do |tutorial_series| %>
@@ -24,11 +24,13 @@
 		</aside>
   
 		<div class="column content">
-	    	<%= yield %>
+				<%= prev_next_links %>
+	    		<%= yield %>
+	    	
 		</div>
 	  
 	</div>
-
+	</div>
     
   </body>
 </html>
