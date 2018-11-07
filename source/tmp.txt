@@ -1,24 +1,25 @@
----
-title: STL-TEC
----
-
-
-
-
-<section class="hero welcome is-small is-rounded is-primary is-bold">
-    <div class="hero-body">
-        <div class="container">
-            <h1 class="title"><%= current_page.data.title %></h1>
-            <h2 class="subtitle">IT-Security and assorted blogging </h2>
-        </div>
-    </div>
-</section>
-
 <div class="tile is-ancestor s-pad-1">
+  
   <div class="tile is-vertical is-8">
+    <div class="tile is-parent">
+    <article class="tile is-child box">
+      <p class="title">Foo</p>
+      <p class="subtitle">Bar</p>
+    </article>
+  </div>
+  <div class="tile is-parent">
+    <article class="tile is-child box">
+      <p class="title">Third column</p>
+      <p class="subtitle">With some content</p>
+      <div class="content">
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.</p>
+      </div>
+    </article>
+  </div>
+
     <% link_to 'tutorials/WinKDbg' do %>
       <div class="tile is-parent">
-        <article class="tile is-child notification is-primary is-bold">
+        <article class="tile is-child notification is-primary">
           <p class="title">Tutorial series</p>
           <p class="subtitle">Windows Kernel Debugging</p>
           How to stop worrying and learn to use WinDBG to become a better person.
@@ -28,32 +29,34 @@ title: STL-TEC
         </article>
       </div>
     <%end%>
-    <div class="tile">
-      <% link_to 'tutorials/WinExp', class: "tile is-parent" do%> 
-        
-        <article class="tile is-child notification is-warning is-bold">
+      
+      <div class="tile is-parent">
+        <% link_to 'tutorials/WinExp' do %>
+        <article class="tile is-child notification is-warning">
             <p class="title">Tutorial Series</p>
             <p class="subtitle">Windows Exploitation</p>
             Use the knowledge gained in the Kernel debugging tutorials to write windows shellcode.
-            <%= image_tag 'wip_128.png' %>
-            <!--
             <figure class="image">
-              
+              <%= image_tag 'wip_128.png' %>
             </figure>
-            -->
         </article>
-      <%end%>
-      <% link_to 'site/about', class: "tile is-parent" do %>
+        <%end%>
+      </div>
+      <div class="tile is-parent">
+        <% link_to 'site/about' do %>
         <article class="tile is-child notification is-secondary">
           <p class="title">About</p>
+          <!--
           <figure class="image is-4by4">
-            <%= image_tag 'stl-tec1_256.png' %>
+            <%#= image_tag 'stl-tec1_256.png' %>
           </figure>
+        -->
         </article>
-      <% end %>
-    </div>
+        <%end%>
+      </div>
+    
   </div>
-  <% link_to 'https://reisewiki.stlt.de', class: "tile is-parent" do %>
+  <div class="tile is-parent">
     <article class="tile is-child notification is-success">
       <div class="content">
         <p class="title">Mein (alter) Reiseblog</p>
@@ -61,16 +64,7 @@ title: STL-TEC
         <%= image_tag 'teaser/dia_usa_080.jpg' %>
         <p class="subtitle">Durch Eis und Schnee</p>
         <%= image_tag 'teaser/usa_2010_amtl2_048.jpg' %>
-        <p class="subtitle">Auf dem Meer</p>
-        <%= image_tag 'teaser/malta_bestof_01.jpg' %>
       </div>
     </article>
-  <% end %>
+  </div>
 </div>
-
-
-
-
-
-
-

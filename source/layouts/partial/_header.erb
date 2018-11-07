@@ -12,7 +12,10 @@
 <nav class="navbar" role="navigation" aria-label="main navigation">
   <!-- is-dark -->
   <div class="navbar-brand">
-    <%= link_to 'Home', '/index.html', class: 'navbar-item' %>
+    <% link_to '/index.html', class: 'navbar-item' do %>
+      <%= image_tag 'stl-tec2_256.png', height: '80' %>
+      <!--<img src="stl-tec2_256.png" width="302" height="80"> -->
+    <% end %>
 
     <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="navbar">
       <span aria-hidden="true"></span>
