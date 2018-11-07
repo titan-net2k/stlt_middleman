@@ -56,7 +56,8 @@ Quick rundown what you have to do to set up a kernel debugging session:
 
 ## 1.1 Create a virtual windows
 
-There are several **hypervisor** solutions to choose from. Main choices are Vmware Workstation, Oracle Virtualbox and Microsoft Hyper-V. If you don't know what to pick use Virtualbox. It is free and offers great usability. You can always switch to VMware Workstation. Hyper-V is built for a completely different purpose. You can use it for kernel debugging if you feel absolutely compelled but I wouldn't recommend it.
+There are several **hypervisor** solutions to choose from. Main choices are Vmware Workstation, Oracle Virtualbox and Microsoft Hyper-V. Neither Virtualbox nor Hyper-V virtualize SMEP which is a downside if you start advancing into exploiting. Apart from that Virtualbox is the best pick in my opinion and Hyper-V should be avoided. It is built for a completely different purpose and feels very clunky if used for kernel debugging.
+VMWare workstation is solid. Use it if you are tied into Vmware products or want to fight SMEP.
 
 I used Virtualbox while writing this guide. (And switched to Vmware Workstation while writing the -Exploitation- tutorials, because it offers virtualization of certain security features that Virtualbox doesn'tl)
 
