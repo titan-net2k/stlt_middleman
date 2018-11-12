@@ -19,6 +19,7 @@ module Helpers
 
 	def prev_next_links
 		sorted_siblings = current_page.parent.children.each.sort_by { |a| a.data.title }
+		sorted_siblings.insert(0, current_page.parent)
     	sorted_siblings.each_with_index do | sibling, index |
 	      	if sibling.url == current_page.url
 	        	s = ''
