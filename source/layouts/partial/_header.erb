@@ -29,16 +29,17 @@
        <%#= link_to 'Articles', '/articles/', class: 'navbar-item' %>
 
       <div class="navbar-item has-dropdown is-hoverable">
-        <%= menu_link 'Tutorials', '/tutorials/', 'navbar-link' %>
-
+        <%#= menu_link 'Tutorials', '/tutorials/', 'navbar-link' %>
+        <a class="navbar-link">Tutorials</a>
         <div class="navbar-dropdown">
-          <a class="navbar-item">
+          <% link_to '/tutorials/WinKDbg/', class: 'navbar-item' do %>
             Windows Kernel Debugging
-          </a>
-          <a class="navbar-item">
+          <% end %>
+          <% link_to '/tutorials/WinExp/', class: 'navbar-item' do %>
             Windows Exploitation
-          </a>
-          </div>
+          <% end %>
+        </div>
+
       </div>
       <%= menu_link 'About', '/site/about.html', 'navbar-item' %>
       
