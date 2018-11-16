@@ -2,11 +2,11 @@
 title: '2: WinDbg'
 ---
 
-#<%= current_page.data.title %>
+# <%= current_page.data.title %>
 
 Windbg is basically a commandline where you enter specific debugging commands (based on the command line debugger kd.exe). To justify using a desktop application you can open additional views to make things easier. I would suggest you open at least a disassembly view. And save you workspace or Windbg will just reset next time it starts up.
 
-{{:tutorials:winkdbg:windbg2_1.png?direct&600|}}
+![](img/windbg2_1.png "Windbg workspace")
 
 Windbg has a lot of commands and most of them are rather unintuitive. Windbg.info ([http://windbg.info/doc/1-common-cmds.html](http://windbg.info/doc/1-common-cmds.html)) has a thematically grouped list, but it feels like reading a phone book. I tried to create a list of important commands ([tutorials:winkdbg:page2x](tutorials/winkdbg/page2x)) but I am not very fond of it. So I will try to walk through some basic tasks and hope this will give you a feel for the syntax and common commands. Afterwards you can use google, the official [ Documentation](https///docs.microsoft.com/en-us/windows-hardware/drivers/debugger/commands ) and of course part 3 to become and expert.
 
@@ -16,7 +16,7 @@ In general commands fall into three categories. Anything starting with a **.** i
 
 I am using Windbg for debugging and a Windows 10 1709 VM idling after user logon. First a few commands to check that everything is in order: ''lm'', *list modules* will show all loaded modules. This should show a long list of loaded modules. Next are ''.sympath'' which should show your correctly configured symbol path and ''.reload'' to load the symbols for all the currently loaded modules. Then try ''lm'' again. If it still doesn't show a list of modules something is really wrong and you should restart ((If a restart doesn't trigger the kernel debugger you may have to shut down the debugee and start it again. Definitely needed with Virtualbox 5.2 and 1709 ))
 
-{{:tutorials:winkdbg:page2_lm.png?direct&600|}}
+![](img/page2_lm.png)
 
 If it works we are set and ready to take a closer look at the output. The ''lm'' command is the best we have for an easy memory map and can be quiet useful. If you look at the memory addresses where the modules are mapped you should see both userspace modules - at least ntdll ((Windbg sometimes plays stupid and doesn't detect ntdll, a restart should fix that. And if you start to see a pattern in my problem solving solutions go blame Bill.)) - and kernelspace modules - nt, hal and all the rest.
 
@@ -30,14 +30,15 @@ We verify this using ''k'' to view the stac**k** (or ''kc'' for a clean call sta
 
 For anyone not familiar with assembly code or how functions work I will try a 
 
-`<spoiler| Quick instruction into assembly, function and the stack>`
+<details><summary>Introduction into assembly, function and the stack</summary>
+  <div markdown="1" class="notification is-dark">
 
 **This is really just a quick rundown, use google frequently if you don't know what I am talking about.**
 
 
 The CPU of any computer works with assembly instructions specific to it's architecture. For us that is most likely x64 Assembly. Any program, app and the kernel code is translated into assembly instructions and they are worked off one by one by the processor. This get's rather complicated with multiple processors, cores and modern processor architectures but we can ignore that for now and just assume we have one processor like back in the good old days. Most of these instructions involve registers a set of temporary storage units that are very close to where the CPU does the actual calculations. There are a lot of those, some are for general use and some have very specific functions. For example *RIP* contains the instruction pointer. It points to the place in memory where the next instruction is waiting to be executed. And unless the instruction tell him to do go somewhere else he will expect the next instruction right after that.
 
-{{:tutorials:winkdbg:page2_registers.png?direct&600|}} 
+(img/page2_registers.png "Text") 
 
 A quick example. The instruction ''x = 5*2'' in any random programming language becomes something like:
 
@@ -47,7 +48,7 @@ A quick example. The instruction ''x = 5*2'' in any random programming language 
 	mov qword ptr [rsp+0B0h], rax # mov content of rax to rsp(stack pointer)+0xB0
 
 
-Note that the processor doesn't care if we call our variable *x*,//y// or *`<nowiki>`F**ckYouProcessor`</nowiki>`*, it's just some memory address on the stack. That is what the symbol files are for. Without symbol files we can still read the assembly code but variables and functions don't have names. And what is this stack you may ask: it is a last in first out data structure a process (or thread) uses as general data dump. Much like a small desk.
+Note that the processor doesn't care if we call our variable *x*,//y// or *F\*\*ckYouProcessor*, it's just some memory address on the stack. That is what the symbol files are for. Without symbol files we can still read the assembly code but variables and functions don't have names. And what is this stack you may ask: it is a last in first out data structure a process (or thread) uses as general data dump. Much like a small desk.
 
 Back to our *NtCreateUserProcess*. This function was called with the ''call fffff803`72c9a834'' (see screenshot) assembly instruction. This tells the cpu to continue his execution at address ''fffff803`72c9a834'', but also to handle this as a function. That means he prepares himself to continue execution right after the ''call'' instruction. The way this is done is, you may have guessed it already, via the stack. The content of the *Instruction Pointer* register is pushed on the stack (the "return address") and the processor jumps to the specified instruction. Note that there are also normal jump instructions that don't involve the stack - they are used for the usual branching (if, for and all that) inside functions.
 
@@ -65,7 +66,8 @@ And a bit beyond of what we are doing right now you can also see the Windows Sta
 
 I hope this helped refreshing some basics, if you are still clueless check the interweb for a more generic instruction to Assembly and how instructions work. 
 
-`</spoiler>`
+</div>
+</details>
 
 Additional ''u'' command will continue showing disassembly, ''uf  nt!NtCreateUserProcess'' will disassemble the whole function and ''u `<address>` L20'' will display 20 lines of code starting at `<address>`. 
 
