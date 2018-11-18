@@ -17,6 +17,17 @@ module Helpers
 	  "<img #{alt_attr} src='#{url}/#{relative_path}'>"  # return
 	end
 
+	def img_frame(image, caption)
+		concat(partial('layouts/partials/img_frame', locals:{image: image, caption: caption}))
+	end
+
+	def note(heading,type = 'info', &block)
+		if block_given?
+          content = capture_html(&block).to_s
+        end
+        concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
+	end
+
 	def prev_next_links
 		sorted_siblings = current_page.parent.children.each.sort_by { |a| a.data.title }
 		sorted_siblings.insert(0, current_page.parent)

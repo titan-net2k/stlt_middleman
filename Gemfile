@@ -8,4 +8,5 @@ gem 'redcarpet'
 gem "middleman-livereload", "~> 3.4.3"
 gem 'middleman-deploy', '~> 2.0.0.pre.alpha'
 gem 'middleman-dotenv'
-gem "middleman-syntax"
+gem 'middleman-syntax'
+gem 'byebug'

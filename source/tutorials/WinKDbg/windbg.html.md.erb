@@ -6,7 +6,8 @@ title: '2: WinDbg'
 
 Windbg is basically a commandline where you enter specific debugging commands (based on the command line debugger kd.exe). To justify using a desktop application you can open additional views to make things easier. I would suggest you open at least a disassembly view. And save you workspace or Windbg will just reset next time it starts up.
 
-![](img/windbg2_1.png "Windbg workspace")
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/windbg2_1.png", caption: "Windbg workspace" }) %>
 
 Windbg has a lot of commands and most of them are rather unintuitive. Windbg.info ([http://windbg.info/doc/1-common-cmds.html](http://windbg.info/doc/1-common-cmds.html)) has a thematically grouped list, but it feels like reading a phone book. I tried to create a list of important commands ([tutorials:winkdbg:page2x](tutorials/winkdbg/page2x)) but I am not very fond of it. So I will try to walk through some basic tasks and hope this will give you a feel for the syntax and common commands. Afterwards you can use google, the official [ Documentation](https///docs.microsoft.com/en-us/windows-hardware/drivers/debugger/commands ) and of course part 3 to become and expert.
 
@@ -14,23 +15,26 @@ In general commands fall into three categories. Anything starting with a **.** i
 
 ## Let's get started
 
-I am using Windbg for debugging and a Windows 10 1709 VM idling after user logon. First a few commands to check that everything is in order: ''lm'', *list modules* will show all loaded modules. This should show a long list of loaded modules. Next are ''.sympath'' which should show your correctly configured symbol path and ''.reload'' to load the symbols for all the currently loaded modules. Then try ''lm'' again. If it still doesn't show a list of modules something is really wrong and you should restart ((If a restart doesn't trigger the kernel debugger you may have to shut down the debugee and start it again. Definitely needed with Virtualbox 5.2 and 1709 ))
+I am using Windbg for debugging and a Windows 10 1709 VM idling after user logon. First a few commands to check that everything is in order: `lm`, *list modules* will show all loaded modules. This should show a long list of loaded modules. Next are `.sympath` which should show your correctly configured symbol path and `.reload` to load the symbols for all the currently loaded modules. Then try `lm` again. If it still doesn't show a list of modules something is really wrong and you should restart ((If a restart doesn't trigger the kernel debugger you may have to shut down the debugee and start it again. Definitely needed with Virtualbox 5.2 and 1709 ))
 
-![](img/page2_lm.png)
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/page2_lm.png", caption: "Modules list" }) %>
 
-If it works we are set and ready to take a closer look at the output. The ''lm'' command is the best we have for an easy memory map and can be quiet useful. If you look at the memory addresses where the modules are mapped you should see both userspace modules - at least ntdll ((Windbg sometimes plays stupid and doesn't detect ntdll, a restart should fix that. And if you start to see a pattern in my problem solving solutions go blame Bill.)) - and kernelspace modules - nt, hal and all the rest.
+If it works we are set and ready to take a closer look at the output. The `lm` command is the best we have for an easy memory map and can be quiet useful. If you look at the memory addresses where the modules are mapped you should see both userspace modules - at least ntdll ((Windbg sometimes plays stupid and doesn't detect ntdll, a restart should fix that. And if you start to see a pattern in my problem solving solutions go blame Bill.)) - and kernelspace modules - nt, hal and all the rest.
 
 ## Breakpoints
 
-Everyone reading this should know what a breakpoint is and what it does in application debugging. So let's set a kernel breakpoint! The question is.. where? For that we need the ''x''((The x command is highly useful but it can also be rather stupid. For example it can't find symbols starting with and underscore.)) (e**x**amine symbol)) command: ''x nt!NtCreate*'' will search the symbol file of the *nt* module ((Mr. Kernel himself!)) for anything starting with *NtCreate*. We will pick one that is easy to trigger and set a breakpoint on it: ''bp nt!NtCreateUserProcess''. Continue execution with ''g''(**g**o). If you switch to your debugee VM and launch any executable the debugger should break right at the start of *nt!NtCreateUserProcess*. 
+Everyone reading this should know what a breakpoint is and what it does in application debugging. So let's set a kernel breakpoint! The question is.. where? For that we need the `x`((The x command is highly useful but it can also be rather stupid. For example it can't find symbols starting with and underscore.)) (e**x**amine symbol)) command: `x nt!NtCreate*` will search the symbol file of the *nt* module ((Mr. Kernel himself!)) for anything starting with *NtCreate*. We will pick one that is easy to trigger and set a breakpoint on it: `bp nt!NtCreateUserProcess`. Continue execution with `g`(**g**o). If you switch to your debugee VM and launch any executable the debugger should break right at the start of *nt!NtCreateUserProcess*. 
 
-{{:tutorials:winkdbg:page2_ntcreateuserprocess.png?direct&600|}}
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/page2_ntcreateuserprocess.png", caption: "NtCreateUserProcess" }) %>
 
-We verify this using ''k'' to view the stac**k** (or ''kc'' for a clean call stack view) and ''u'' to unassemble the current address. 
+
+We verify this using `k` to view the stac**k** (or `kc` for a clean call stack view) and `u` to unassemble the current address. 
 
 For anyone not familiar with assembly code or how functions work I will try a 
 
-<details><summary>Introduction into assembly, function and the stack</summary>
+<details><summary>Introduction into assembly, function calls and the stack</summary>
   <div markdown="1" class="notification is-dark">
 
 **This is really just a quick rundown, use google frequently if you don't know what I am talking about.**
@@ -38,29 +42,32 @@ For anyone not familiar with assembly code or how functions work I will try a
 
 The CPU of any computer works with assembly instructions specific to it's architecture. For us that is most likely x64 Assembly. Any program, app and the kernel code is translated into assembly instructions and they are worked off one by one by the processor. This get's rather complicated with multiple processors, cores and modern processor architectures but we can ignore that for now and just assume we have one processor like back in the good old days. Most of these instructions involve registers a set of temporary storage units that are very close to where the CPU does the actual calculations. There are a lot of those, some are for general use and some have very specific functions. For example *RIP* contains the instruction pointer. It points to the place in memory where the next instruction is waiting to be executed. And unless the instruction tell him to do go somewhere else he will expect the next instruction right after that.
 
-(img/page2_registers.png "Text") 
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/page2_registers.png", caption: "AMD64 registers" }) %>
 
-A quick example. The instruction ''x = 5*2'' in any random programming language becomes something like:
+A quick example. The instruction `x = 5*2` in any random programming language becomes something like:
 
-	
+``` cpp	
 	mov rax, 5 # move 5 into register rax
 	mul rax, 2 # multiply register value of rax by 2
 	mov qword ptr [rsp+0B0h], rax # mov content of rax to rsp(stack pointer)+0xB0
-
+```
 
 Note that the processor doesn't care if we call our variable *x*,//y// or *F\*\*ckYouProcessor*, it's just some memory address on the stack. That is what the symbol files are for. Without symbol files we can still read the assembly code but variables and functions don't have names. And what is this stack you may ask: it is a last in first out data structure a process (or thread) uses as general data dump. Much like a small desk.
 
-Back to our *NtCreateUserProcess*. This function was called with the ''call fffff803`72c9a834'' (see screenshot) assembly instruction. This tells the cpu to continue his execution at address ''fffff803`72c9a834'', but also to handle this as a function. That means he prepares himself to continue execution right after the ''call'' instruction. The way this is done is, you may have guessed it already, via the stack. The content of the *Instruction Pointer* register is pushed on the stack (the "return address") and the processor jumps to the specified instruction. Note that there are also normal jump instructions that don't involve the stack - they are used for the usual branching (if, for and all that) inside functions.
+Back to our *NtCreateUserProcess*. This function was called with the `call fffff803`72c9a834` (see screenshot) assembly instruction. This tells the cpu to continue his execution at address `fffff803`72c9a834`, but also to handle this as a function. That means he prepares himself to continue execution right after the `call` instruction. The way this is done is, you may have guessed it already, via the stack. The content of the *Instruction Pointer* register is pushed on the stack (the "return address") and the processor jumps to the specified instruction. Note that there are also normal jump instructions that don't involve the stack - they are used for the usual branching (if, for and all that) inside functions.
 
 If we look at the stack now we see the return address right on top. And if we would dig around it a bit we would find out that it is inside the function *nt!KiSystemServiceCopyEnd*. But Windbg already did that for us.
 
-But it will be an interesting exercise poking around that. So copy the return address from the stack (for me it is nt!KiSystemServiceCopyEnd+0x13), do a ''.cls'' to clear the screen and run ''uf nt!KiSystemServiceCopyEnd'' to disassemble KiSystemServiceCopyEnd. Note that the return address is likely a label and not an address. So it isn't nt!KiSystemServiceCopyEnd + 0x13, but some place inside the function called "nt!KiSystemServiceCopyEnd+0x13". That gives even me a headache but better get used to it. Your can use ctl+f to search inside the command window, or just the gui stack and disassembly windows to point and click your way to it but eventually you should find something like this:
+But it will be an interesting exercise poking around that. So copy the return address from the stack (for me it is `nt!KiSystemServiceCopyEnd+0x13`), do a `.cls` to clear the screen and run `uf nt!KiSystemServiceCopyEnd` to disassemble KiSystemServiceCopyEnd. Note that the return address is likely a label and not an address. So it isn't `nt!KiSystemServiceCopyEnd + 0x13`, but some place inside the function called `nt!KiSystemServiceCopyEnd+0x13`. That gives even me a headache but better get used to it. Your can use ctl+f to search inside the command window, or just the gui stack and disassembly windows to point and click your way to it but eventually you should find something like this:
 
-{{:tutorials:winkdbg:page2_call.png?direct&600|nt!KiSystemServiceCopyEnd+0x10: call    r10}}
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/page2_call.png", caption: "nt!KiSystemServiceCopyEnd+0x10: call r10" }) %>
 
-If you go back to ''u nt!NtCreateUserProcess'' you will note a number of ''push'' instructions that push the content of several registers on the stack. These are registers that Microsoft deems worth saving when a function is called and part of the Windows function calling conventions. If you poke around a bit in nt!NtCreateUserProcess you will also find how they are restored via ''pop'' instruction right before ''ret'' tells the processor to return to the calling function. 
+If you go back to `u nt!NtCreateUserProcess` you will note a number of `push` instructions that push the content of several registers on the stack. These are registers that Microsoft deems worth saving when a function is called and part of the Windows function calling conventions. If you poke around a bit in nt!NtCreateUserProcess you will also find how they are restored via `pop` instruction right before `ret` tells the processor to return to the calling function. 
 
-{{:tutorials:winkdbg:page2_ret.png?direct&600|}}
+<%= partial('layouts/partials/img_frame', 
+	locals: { image: "img/page2_ret.png", caption: "nt!KiSystemServiceCopyEnd+0x10: call r10" }) %>
 
 And a bit beyond of what we are doing right now you can also see the Windows Stack protection (//security_cookie//) at work that tries to prevent people from overwriting the stack and thereby taking control of the instruction pointer and thereby the computer. 
 
@@ -69,28 +76,34 @@ I hope this helped refreshing some basics, if you are still clueless check the i
 </div>
 </details>
 
-Additional ''u'' command will continue showing disassembly, ''uf  nt!NtCreateUserProcess'' will disassemble the whole function and ''u `<address>` L20'' will display 20 lines of code starting at `<address>`. 
+Additional `u` command will continue showing disassembly, `uf  nt!NtCreateUserProcess` will disassemble the whole function and `u <address> L20` will display 20 lines of code starting at <address>. 
 
-According to the official MS documentation the function stack isn't fully set up until the function prolog has executed. That are the initial push instructions saving several register states, the stack pointer correction and the stack canary (security cookie). We will take a closer look at what happens. For that ''k'' isn't a big help, we need to use ''dp rsp'' to look at the actual stack in memory. The basic command is 'd' for display, 'p' for pointer size and rsp, the stack pointer register, points to the current stack location. 
+According to the official MS documentation the function stack isn't fully set up until the function prolog has executed. That are the initial push instructions saving several register states, the stack pointer correction and the stack canary (security cookie). We will take a closer look at what happens. For that `k` isn't a big help, we need to use `dp rsp` to look at the actual stack in memory. The basic command is `d` for display, `p` for pointer size and rsp, the stack pointer register, points to the current stack location. 
 
-Exercise:
-`<note>`Use ''p'' (ste**p**), r (show **r**egisters) and ''dp rsp'' to look how the prolog is executed. Note that you can use arithmetic like ''dp rsp+10'' and define how many values are shown with ''dp rsp L20''. How the numbers are interpreted depends on the configured number base you can check and define with ''n''. The default it hex so that may be confusing. If something goes wrong, you can always restart by using g (or F5) to continue execution and break at another instance of nt!NtCreateUserProcess.`</note>`
 
-Extra:
-`<note>`Use ''db'', ''dd'' (byte, double) to find the little endian ([https://en.wikipedia.org/wiki/Endianness](https///en.wikipedia.org/wiki/Endianness)) and ''da'' to check for ascii values on the stack.`</note>`
+<% note('Exercise') do %>
 
-Bonus:
-`<note tip>`While looking at the call stack you should note that the call came from userspace (ntdll!NtCreateUserProcess)
- with a userspace memory address (0000...) and moved to kernel memory (FFFF... and nt!). We will havee to take a closer look at that eventually. `</note>`
+ Use `p` (ste**p**), r (show **r**egisters) and `dp rsp` to look how the prolog is executed. Note that you can use arithmetic like `dp rsp+10` and define how many values are shown with `dp rsp L20`. How the numbers are interpreted depends on the configured number base you can check and define with `n`. The default is hex so that may be confusing. If something goes wrong, you can always restarl by using g (or F5) to continue execution and break at another instance of nt!NtCreateUserProcess.
+
+<% end %>
+
+<% note('Bonus Exercise I') do %>
+Use `db`, `dd` (byte, double) to find the little endian (<https://en.wikipedia.org/wiki/Endianness>) and `da` to check for ascii values on the stack.
+<% end %>
+
+<% note('Bonus Exercise I') do %>
+While looking at the call stack you should note that the call came from userspace (ntdll!NtCreateUserProcess)
+with a userspace memory address (0000...) and moved to kernel memory (FFFF... and nt!). We will have to take a closer look at that eventually. 
+<% end %>
 
 Afterwards search the function for the matching epilog, set a breakpoint so you can also examine the epilog. If you are bored from watching the stack at least set the breakpoint and have your debugee break into to it.
 
-{{:tutorials:winkdbg:page2_breakpoint.png?direct&600|}}
+<%= img_frame('img/page2_breakpoint.png', 'Setting a breakpoint') %>
 
-Unfortunately we are not done with breakpoints just yet. What we did was create a 'normal' breakpoint that is automatically deleted when a module unloads. So if you would unload the kernel (don't!) of your debugee our breakpoints should disappear. But there is also the other way around: ''bu'' will create an **u**nresolved breakpoint that is only really created once the matching module gets loaded. And there is ''bm'' which will set a **m**atching breakpoint on anything it can find. A quick example is ''bm NtCreateUserProcess'', which will create a Breakpoint at both the usermode (ntdll!..) and the kernel mode (nt!..) function. And lastly there is also ''ba'' which will break on memory **a**cess. It is special because it uses a different mechanism and can break at *things* normal breakpoints can't. Maybe we will use it later in the tutorial.
+Unfortunately we are not done with breakpoints just yet. What we did was create a "normal" breakpoint. Sometimes it is useful to use `bu` to create an **u**nresolved breakpoint that is only really created once the matching module gets loaded. And there is `bm` which will set a **m**atching breakpoint on anything it can find. A quick example is `bm NtCreateUserProcess`, which will create a Breakpoint at both the usermode (ntdll!..) and the kernel mode (nt!..) function. And lastly there is also `ba` which will break on memory **a**cess. It is special because it uses a different mechanism and can break at *things* normal breakpoints can't. Maybe we will use it later in the tutorial.
 
-Afterwards use ''bl'' to list your breakpoints and ''bc *'' to delete all of them. 
+Afterwards use `bl` to list your breakpoints and `bc *` to delete all of them. 
 
 
-This was really a lot and the page is getting rather long. Let's continue on a new page: [tutorials:winkdbg:page2a](tutorials/winkdbg/page2a).
+This was really a lot and the page is getting rather long. Let's continue in the next episode: [WindDbg2](../windbg2).
 

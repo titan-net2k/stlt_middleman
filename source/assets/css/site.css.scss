@@ -24,3 +24,49 @@ div.tile-link a {
         opacity: 0; /* Fix to make div clickable in IE */
         filter: alpha(opacity=1); /* Fix to make div clickable in IE */
     }
+
+.frame {
+    border: 1px solid #000; 
+    padding: 5px;
+}
+
+details { 
+    //max-width: 600px; 
+    margin: 50px auto;
+    
+    summary {
+        list-style: none;
+        display: block;
+        background-color: #f4f4f4;
+        padding: 5px 10px;
+        position: relative;
+        cursor: pointer;
+        font-family: Rajdhani;
+        color: #275d38;
+        font-size: 24px;
+        
+        &::-webkit-details-marker { display: none; }
+        &:before {
+            display: flex;
+            justify-content: center; align-items: center;
+            content: '\f0fe';
+            font-family: FontAwesome;
+            font-size: 90%;
+            position: absolute;
+            top: 0; bottom: 0; right: 0;
+            width: 30px;
+            color: #fff;
+            background-color: #285d39;
+        }
+    }
+    > :not(summary) {
+        padding: 10px;
+        background-color: #fff;
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 300ms;
+    }
+    
+    &[open] summary:before { content: '\f146'; }
+    &[open] > :not(summary) { transform: scaleY(1); }
+}

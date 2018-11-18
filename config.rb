@@ -33,7 +33,6 @@ set :css_dir, 'assets/css'
 set :js_dir, 'assets/javascript'
 set :images_dir, 'assets/images'
 set :layouts_dir, 'layouts'
-set :partials_dir, 'partials'
 
 set :relative_links, true
 activate :relative_assets
