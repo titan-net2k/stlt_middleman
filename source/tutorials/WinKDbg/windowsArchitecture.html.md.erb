@@ -2,19 +2,19 @@
 title: '3: Windows (nt) Architecture'
 ---
 
-#<%= current_page.data.title %>
+# <%= current_page.data.title %>
 
 
-In this part I will introduce several windows concepts that will be required to understand the next tutorials. If you get bored just continue with hands-on windows internals in [tutorials:winkdbg:page4](tutorials/winkdbg/page4) and come back later. 
+In this part I will introduce several windows concepts that will be required to understand the next tutorials. If you get bored just continue with hands-on windows internals in [ Part4a: Processes](../processes) and come back later. 
 
 Many of these concepts have been introduces with Windows NT and have been around for centuries. Some of them, like the whole kernel-user space distinction and syscalls are not even specific to Windows. I will still try my best to keep everything as current (Windows 10) as possible. 
 
-`<spoiler | Syscall?>`
+<% spoiler("Syscalls?") do%>
 I mentioned syscalls already so it is about time we did a quick recap on what those are. 
 
 Operating systems do a lot. And really complicated sh** too. But if you ignore the details it's really just a middleware between the hardware and whatever the user wants to do. Like on this picture I borrowed from the wikipedia page about the kernel, the core part of the operating system:
 
-{{:tutorials:winkdbg:part3_kernel_layout.png?direct&200|}}
+<%= img_frame('img/part3_kernel_layout.png', 'Operating System Layout', '400px') %>
 
 So for instance the operation system could export a function called osReadFile to access the hard drive. Every time something running on this operating system needs to read from a file it would call that function. A "call to the operation system", or short: syscall. And if you where to design 
 a simple embedded system, like a portable music player your operating system could really be just that: a bunch of special functions between your feature code and your hardware. 
@@ -23,17 +23,18 @@ Of course on a real computer and nowadays that category pretty much starts at po
 
 So on Windows you can't just call nt!NtCreateUserProcess. This is enforced by the CPU and you can't argue with the CPU ((Well.. with Spectre and Meltdown you sort of can, that's why they are so scary.)) The x64 CPU offers four modes, called rings that are designed to completely separate privilege levels. Windows uses two of these - *ring 0* for the kernel and *ring 3* for user mode - and the only way to switch between them is via a special syscall mechanism. It's actually the same for Linux just the actual implementation is different. 
 
-`</spoiler>`
+<%end%>
 
 ## Windows Architecture
 
-{{:tutorials:winkdbg:win_arch1.png?direct&400|}}
+<%= img_frame('img/win_arch1.png', 'Windows (NT) Architecture', '400px') %>
+
 
 This how Windows looks like when you cut it open: Starting at the top there are the system processes like winlogon.exe or the session manager smss.exe that do essential user space operations. Next are the services doing all the things services do (printing, sound etc.) and the 'normal' user mode processes. 
 
-This can be looked at using the *Process Explorer* from the Sysinternals toolkit ([https://www.google.de/search?q=sysinternals+site%3Amicrosoft.com](https///www.google.de/search?q=sysinternals+site%3Amicrosoft.com)). The *Sysinternals Suite* is a collection of tools created by Mark Russinovich, the author of the windows internals books. It does what it says in the title: help look at system internals and it is definitely useful to have around while trying to figure out how windows works.
+This can be looked at using the *Process Explorer* from the Sysinternals toolkit (<https://www.google.de/search?q=sysinternals+site%3Amicrosoft.com>). The *Sysinternals Suite* is a collection of tools created by Mark Russinovich, the author of the windows internals books. It does what it says in the title: help look at system internals and it is definitely useful to have around while trying to figure out how windows works.
 
-{{:tutorials:winkdbg:page3_procexpl.png?direct&600|}}
+<%= img_frame('img/page3_procexpl.png', 'Sysinternalts: Process Explorer') %>
 
 ### Subsystem dlls and ntdll.dll
 
@@ -73,7 +74,7 @@ Apart from type all objects fall into two categories: Kernel and Executive objec
 
 Related to object are handles. If a user requests access to a file the kernel create a file object and gives the user access to it, so he can use it to read from the file or whatever. But the kernel doesn't hand over a pointer to the object but a handle. This handle is simply a number that can be used to access the object via the handle table. Reasons for this are once again security, stability and all that. It also simplifies 'garbage collection' (using the term loosely): if all handles pointing to a certain object are closed the object itself can be destroyed. 
 
-We will look at object and handles more closely in [tutorials:winkdbg:page4](tutorials/winkdbg/page4).
+We will look at object and handles more closely in [Part4b: processes](../objectsl).
 
 ### Linked Lists
 

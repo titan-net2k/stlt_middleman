@@ -17,8 +17,8 @@ module Helpers
 	  "<img #{alt_attr} src='#{url}/#{relative_path}'>"  # return
 	end
 
-	def img_frame(image, caption)
-		concat(partial('layouts/partials/img_frame', locals:{image: image, caption: caption}))
+	def img_frame(image, caption, max_width='800px')
+		concat(partial('layouts/partials/img_frame', locals:{image: image, caption: caption, max_width: max_width}))
 	end
 
 	def note(heading,type = 'info', &block)
@@ -26,6 +26,13 @@ module Helpers
           content = capture_html(&block).to_s
         end
         concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
+	end
+
+	def spoiler(heading,type = 'info', &block)
+		if block_given?
+          content = capture_html(&block).to_s
+        end
+        concat(partial('layouts/partials/spoiler', locals: {heading: heading, content: content, type: type}))
 	end
 
 	def prev_next_links

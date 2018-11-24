@@ -1,22 +1,22 @@
 ---
-title: '2a: More Windbg'
+title: '2b: Windbg part II'
 ---
 # 2a: More Windbg
 
-We already covered a lot of the basics last time: Breakpoints, how to look at memory, the stack and registers. How to `<del>`un`</del>`disassemble. We only scratched ''p'', the ste**p** command. But you can get more on that from the MS documentation or my [command list](tutorials/winkdbg/page2x) if you need it. There are of course step-in, step-out, but also step to next return and all sorts of ways to step around code.
+We already covered a lot of the basics last time: Breakpoints, how to look at memory, the stack and registers. How to `<del>`un`</del>`disassemble. We only scratched `p`, the ste**p** command. But you can get more on that from the MS documentation or my [command list](tutorials/winkdbg/page2x) if you need it. There are of course step-in, step-out, but also step to next return and all sorts of ways to step around code.
 
 ## Bored?
 
 
-With no better idea what to do you try the ''?'', ''.help'' and ''.extmatch *'' commands to list all possible windbg commands of the three types normal, meta and extensions. You can get additional help with ''.hh `<command>`. And ''.cls'' to clear the 'screen' afterwards
+With no better idea what to do you try the `?`, `.help` and `.extmatch *` commands to list all possible windbg commands of the three types normal, meta and extensions. You can get additional help with `.hh <command>`. And `.cls` to clear the screen afterwards
 
 ## Windbg Calculator
 
-Bit and byte calculations like calculating offsets, shifting bits etc. are an important part of debugging the windows kernel. You can use these inside normal Windbg commands, for instance ''dq `<formula>` L1'' will display the memory at the result of  the formula. If you are not sure your formula is correct you can use ''? `<formula>` to evaluate it. You can also use the ''?'' command as a simple calculator.
+Bit and byte calculations like calculating offsets, shifting bits etc. are an important part of debugging the windows kernel. You can use these inside normal Windbg commands, for instance `dq `<formula>` L1` will display the memory at the result of  the formula. If you are not sure your formula is correct you can use `? `<formula>` to evaluate it. You can also use the `?` command as a simple calculator.
 
-It comes in two flavors: ''?'' will evaluate MASM ((Microsoft Assembler)) syntax and ''??'' will evaluate c++ syntax((you can also switch the default MASM syntax to C++ with a system variable)).
+It comes in two flavors: `?` will evaluate MASM ((Microsoft Assembler)) syntax and `??` will evaluate c++ syntax((you can also switch the default MASM syntax to C++ with a system variable)).
 
-	:::bash
+``` cp
 	? (ff2111 >> 8) + 8
 	Evaluate expression: 65321 = 00000000`0000ff29
 	
@@ -27,44 +27,44 @@ It comes in two flavors: ''?'' will evaluate MASM ((Microsoft Assembler)) syntax
 	kd> .formats 0n65321
 	Evaluate expression:
 	  Hex:     00000000`0000ff29
-	
+```
 
 
-I would say the c++ parser is a bit dumb and requires more writing but if you have experience in c++ pointer shenanigans it may come more natural to you than MASM. I would suggest playing around with both options. You can always use c++ syntax inside MASM using ''@@(`<expression>`)'' or mix completely free with ''@@masm()'' and ''@@c++()''.
+I would say the c++ parser is a bit dumb and requires more writing but if you have experience in c++ pointer shenanigans it may come more natural to you than MASM. I would suggest playing around with both options. You can always use c++ syntax inside MASM using `@@(<expression>)` or mix completely free with `@@masm()` and `@@c++()`.
 
 And while we are doing calculations we also need to look at pointers.
 
 ## Pointers
 
- 
-`<spoiler | Pointers?>` 
+<% spoiler("Pointers?") do%>
 Pointers are variables that point (duh!) to memory locations. They are a big deal inside computers. For example an array in c is just a pointer to a place in memory. The array content at position x is accessed by accessing it's address+x*sizeof(whatever_the_array_holds). If you tell your c compiler you need an array of a 100 elements and then go and access position 200 -> no problem, it's just numbers. Of course this way stupid things can happen and that it why many programming languages don't give programmers direct access to pointers. But they are still everywhere inside and they are everywhere inside the windows kernel. And even deeper: in the last part I already talked about the Instruction **Pointer** (rip register on x64) that points to the memory location where the CPU will find the next instruction it should execute.
 
 Just on semantics: 'Dereferencing a pointer' stands for 'retrieving the actual address it points add'.
-`</spoiler>`
+<%end%>
 
-Pointers can be dereferenced in MASM syntax by using the ''poi'' command. If you have some pointer inside the rax register you can use ''dp rax L1'' to get the address it points at and this address with another ''d~ `<address>` L1'' (~ depends on the data type: a, b, q, p.. ) to look at the actual data. Or you can use ''d~ poi(rax)'' to do the same in one command. 
+Pointers can be dereferenced in MASM syntax by using the `poi` command. If you have some pointer inside the rax register you can use `dp rax L1` to get the address it points at and this address with another `d~ <address> L1` (~ depends on the data type: a, b, q, p.. ) to look at the actual data. Or you can use `d~ poi(rax)` to do the same in one command. 
 
 ## Example
 
-Let's look at an example. It combines a lot of concepts so don't be afraid to check other sources or ask me questions. I will also show all the data from my test run so you can trace what is happening. Sidenote: I will use 16 as Windbg number base (''n 16''), so ''0n10'' is a decimal 10 and ''10'' is a hex 10!
+Let's look at an example. It combines a lot of concepts so don't be afraid to check other sources or ask me questions. I will also show all the data from my test run so you can trace what is happening. Sidenote: I will use 16 as Windbg number base (`n 16`), so `0n10` is a decimal 10 and `10` is a hex 10!
 
 We will once again need a breakpoint at our friend *nt!NtCreateUserProcess*. Right at the very start before the prolog. 
 
-`<spoiler| I forgot how to do it.>`
+<% spoiler("I forgot how to do it.") do%>
 
-	:::bash
+``` cp
 	bp nt!NtCreateUserProcess
 	g
 	# if it doesn't break open debugee and start something
+```
 
-`</spoiler>`
+<%end%>
 
 In the assembly primer of the last part I already wrote a few things about how functions are called and how the stack is used to do it. Now we get to another function calling convention: how parameters are transmitted. You should read some real documentation ((Like [https://msdn.microsoft.com/en-us/library/ms235286.aspx](https///msdn.microsoft.com/en-us/library/ms235286.aspx)) but the short version is this: The first four parameters are transmitted via registers (RCX, RDX, R8, and R9), the rest are put on the stack. But windows still reserves 4 spaces on the stack right before the return address as 'home space' for the parameters that are transmitted via registers ( [https://msdn.microsoft.com/en-us/library/ew5tede7.aspx](https///msdn.microsoft.com/en-us/library/ew5tede7.aspx)).
 
 So this is what it looks like:
 
-	
+``` cp
 	...
 	Stack Space nt!NtCreateUserProcess will use
 	...
@@ -78,12 +78,12 @@ So this is what it looks like:
 	7th Parameter
 	...
 	Stack of calling function
-	
+```
 
 
 And NtCreateuserProcess has a lot of parameters. And as far as I can tell it isn't officially documented so beware that we are entering dangerous waters here. Luckily enough we are not the only ones looking at the windows kernel so google gave me a what is likely the correct function declaration:
 
-	:::cpp
+``` cp
 	NTSTATUS NTAPI NtCreateUserProcess(
 	    PHANDLE ProcessHandle,
 	    PHANDLE ThreadHandle,
@@ -97,13 +97,13 @@ And NtCreateuserProcess has a lot of parameters. And as far as I can tell it isn
 	    PPROCESS_CREATE_INFO CreateInfo,
 	    PPROCESS_ATTRIBUTE_LIST AttributeList
 	);
+```
 
-
-I don't want to go into handles right now, so let's ignore the first two parameters. The Access Mask parameters 3 and 4 are 0x20000000 for me. Checking the official ACCESS_MASK documentation at the MS website ([https://msdn.microsoft.com/en-us/library/windows/desktop/aa374892(v=vs.85).aspx](https///msdn.microsoft.com/en-us/library/windows/desktop/aa374892(v=vs.85).aspx)) they could really be Access Masks with just the "MAXIMUM_ALLOWED" bit set. Take a look at yours with ''.formats r8''.
+I don't want to go into handles right now, so let's ignore the first two parameters. The Access Mask parameters 3 and 4 are 0x20000000 for me. Checking the official ACCESS_MASK documentation at the MS website <https://msdn.microsoft.com/en-us/library/windows/desktop/aa374892(v=vs.85).aspx> they could really be Access Masks with just the "MAXIMUM_ALLOWED" bit set. Take a look at yours with `.formats r8`.
 
 What we really want is the stack mine looks like this:
 
-	
+``` cp
 	kd> dp /c1 rsp
 	fffff90a`3e1a3a88  fffff803`72990003 -> return address
 	fffff90a`3e1a3a90  00000000`00000002 -> home
@@ -119,24 +119,24 @@ What we really want is the stack mine looks like this:
 	fffff90a`3e1a3ae0  000000fc`79c7dc30 -> 11th parameter PPROCESS_ATTRIBUTE_LIST AttributeList
 	fffff90a`3e1a3ae8  00000000`00000000 -> whatever
 	fffff90a`3e1a3af0  00000000`00000001 -> something else
+```
 
+If I try to interpret parameter 7 as a pointer with `dp 000002b5'00000000`, I get garbage so it probably is a flag variable like it is supposed to. Parameter 9 is supposed to be a pointer to an RTL_USER_PROCESS_PARAMETERS structure. Once again using google I found the following declaration at the microsoft website:
 
-If I try to interpret parameter 7 as a pointer with ''dp 000002b5`00000000'', I get garbage so it probably is a flag variable like it is supposed to. Parameter 9 is supposed to be a pointer to an RTL_USER_PROCESS_PARAMETERS structure. Once again using google I found the following declaration at the microsoft website:
-
-	:::cpp
+``` c
 	typedef struct _RTL_USER_PROCESS_PARAMETERS {
 	  BYTE           Reserved1[16];
 	  PVOID          Reserved2[10];
 	  UNICODE_STRING ImagePathName;
 	  UNICODE_STRING CommandLine;
 	} RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+```
 
-
-So it is easy as pie: first we have to print out the memory where parameter 9 points at (''dq 000002b5`3e1b4d60'' in my case). We count down 16 byte and 10 (8-byte) pointers and we will find a unicode string with the ImagePathName. In my example ''dq 000002b5`3e1b4d60 + 0n16 + 0n10*8'' should give me the ImagePathName. Unfortunately it doesn't. For the simple reason that the structure declaration I found is not the correct one for Windows 10. And what I can gather from a quick look around the interweb it may very well be pre-vista. So be prepared for disappointment if you take random kernel code from the interweb, even (especially?) if it comes from the Microsoft website.
+So it is easy as pie: first we have to print out the memory where parameter 9 points at (`dq 000002b5`3e1b4d60` in my case). We count down 16 byte and 10 (8-byte) pointers and we will find a unicode string with the ImagePathName. In my example `dq 000002b5'3e1b4d60 + 0n16 + 0n10*8` should give me the ImagePathName. Unfortunately it doesn't. For the simple reason that the structure declaration I found is not the correct one for Windows 10. And what I can gather from a quick look around the interweb it may very well be pre-vista. So be prepared for disappointment if you take random kernel code from the interweb, even (especially?) if it comes from the Microsoft website.
 
 The correct one:
 
-	:::cpp
+``` c
 	typedef struct _RTL_USER_PROCESS_PARAMETERS
 	{
 	     INT MaximumLength;
@@ -154,32 +154,35 @@ The correct one:
 	     UNICODE_STRING CommandLine;
 	//... 
 	} RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+```
 
-
-We still want the offset to the ImagePathName. The first four variables are put into memory as 4 byte integer, ''int ConsoleFlags'' can't be put into a 4 byte slot in between 8-byte pointer so it takes 8 bytes of space. CURDIR consists of a Pointer and a UNICODE_STRING(16 byte), so it takes 24 byte. That puts the DLLPath at offset 10*8 = 0x50 and  ImagaPathName at 0x60. 
+We still want the offset to the ImagePathName. The first four variables are put into memory as 4 byte integer, `int ConsoleFlags` can't be put into a 4 byte slot in between 8-byte pointer so it takes 8 bytes of space. CURDIR consists of a Pointer and a UNICODE_STRING(16 byte), so it takes 24 byte. That puts the DLLPath at offset 10*8 = 0x50 and  ImagaPathName at 0x60. 
 
 Once again how that looks for me:
 
-	
+``` cp
 	kd> dq 000002b5`3e1b4d60 + 0x60 L2
 	000002b5`3e1b4dc0  00000000`00440042 000002b5`3e1b5378
+```
 
+We are nearly there. UNICODE_STRING is once again a structure, that consists of two unsigned short variables - length and max length - and a pointer 8-) to a buffer that contains the actual unicode string. So in my example I can expect a unicode string at `000002b5'3e1b5378`. Let's try it:
 
-We are nearly there. UNICODE_STRING is once again a structure, that consists of two unsigned short variables - length and max length - and a pointer 8-) to a buffer that contains the actual unicode string. So in my example I can expect a unicode string at ''000002b5`3e1b5378''. Let's try it:
-
-	
+``` cp
 	kd> du /c42 000002b5`3e1b5378 
 	000002b5`3e1b5378  "C:\Windows\system32\usoclient.exe"
-
+```
 
 Awesome. I found out that Windows sneakily tried to launch the UpdateOrchestrator. For you it will likely be something different, but the procedure is the same. Try it for yourself at least once. Play around a bit if you are unsure what is going on. 
 
-`<note>`Bonus exercise:\\ Get the 'CurrentDirectory' string inside the CURDIR structure.`</note>`
+
+<% note('Bonus exercise:') do %>
+Get the 'CurrentDirectory' string inside the CURDIR structure.
+<%end%>
 
 We are of course not done. We still need to combine all of this so we get the ImagePathName based on the rsp register so we don't have to do this every time. Try to do it yourself, just put it together one by one.
 
-`<spoiler|Solution>`
 
+<% spoiler "Solution" do %>
 	
 	du /c40 poi(poi(rsp+0n9*8)+60+8)
 	
@@ -192,23 +195,23 @@ We are of course not done. We still need to combine all of this so we get the Im
 	000002b5`3d2e1028  "c:\windows\system32\taskhostw.exe"
 	
 
-`</spoiler>`
+<%end%>
 
 
-Since the RTL_USER_PROCESS_PARAMETERS structure is part of the public kernel symbols there is a much simpler way using the ''dt'' command:
+Since the RTL_USER_PROCESS_PARAMETERS structure is part of the public kernel symbols there is a much simpler way using the `dt` command:
 
-	:::bash
+``` cp
 	dt nt!_RTL_USER_PROCESS*
 	# -> find the structure name
 	dt nt!_RTL_USER_PROCESS_PARAMETER
 	# -> view the structure definition
 	dt _RTL_USER_PROCESS_PARAMETERS poi(rsp+8*9)
 	# -> view the content of the structure that was used as parameter to nt!NtCreateUserProcess
-
+```
 
 ## Temporary registers
 
-Windbg has ''t`<0-9>` registers as temporary variables of sort. Since there is no easy (at least I don't know any) way to use the output of one command as input for the next I will use these to show data agnostic examples. You will also see (and use) them a lot in Windbg scripts.
+Windbg has `t<0-9>` registers as temporary variables of sort. Since there is no easy (at least I don't know any) way to use the output of one command as input for the next I will use these to show data agnostic examples. You will also see (and use) them a lot in Windbg scripts.
 
 ## Final words
 
