@@ -23,9 +23,20 @@ module Helpers
 
 	def note(heading,type = 'info', &block)
 		if block_given?
-          content = capture_html(&block).to_s
-        end
-        concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
+      content = capture_html(&block).to_s
+    else
+    	content = ''
+    end
+    concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
+	end
+
+	def spoiler(heading, &block)
+		if block_given?
+      content = capture_html(&block).to_s
+    else
+    	content = ''
+    end
+		concat(partial('layouts/partials/spoiler', locals: {heading: heading, concent: content}))
 	end
 
 	def prev_next_links

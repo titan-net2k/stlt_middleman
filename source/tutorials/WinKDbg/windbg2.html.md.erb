@@ -36,12 +36,12 @@ And while we are doing calculations we also need to look at pointers.
 
 ## Pointers
 
- 
-`<spoiler | Pointers?>` 
+<% spoiler('Pointers?') do %>
+
 Pointers are variables that point (duh!) to memory locations. They are a big deal inside computers. For example an array in c is just a pointer to a place in memory. The array content at position x is accessed by accessing it's address+x*sizeof(whatever_the_array_holds). If you tell your c compiler you need an array of a 100 elements and then go and access position 200 -> no problem, it's just numbers. Of course this way stupid things can happen and that it why many programming languages don't give programmers direct access to pointers. But they are still everywhere inside and they are everywhere inside the windows kernel. And even deeper: in the last part I already talked about the Instruction **Pointer** (rip register on x64) that points to the memory location where the CPU will find the next instruction it should execute.
 
 Just on semantics: 'Dereferencing a pointer' stands for 'retrieving the actual address it points add'.
-`</spoiler>`
+<% end %>
 
 Pointers can be dereferenced in MASM syntax by using the ''poi'' command. If you have some pointer inside the rax register you can use ''dp rax L1'' to get the address it points at and this address with another ''d~ `<address>` L1'' (~ depends on the data type: a, b, q, p.. ) to look at the actual data. Or you can use ''d~ poi(rax)'' to do the same in one command. 
 
@@ -51,20 +51,20 @@ Let's look at an example. It combines a lot of concepts so don't be afraid to ch
 
 We will once again need a breakpoint at our friend *nt!NtCreateUserProcess*. Right at the very start before the prolog. 
 
-`<spoiler| I forgot how to do it.>`
+<% spoiler('I forgot how to do it.') do %>
 
 	:::bash
 	bp nt!NtCreateUserProcess
 	g
 	# if it doesn't break open debugee and start something
 
-`</spoiler>`
+<% end %>
 
 In the assembly primer of the last part I already wrote a few things about how functions are called and how the stack is used to do it. Now we get to another function calling convention: how parameters are transmitted. You should read some real documentation ((Like [https://msdn.microsoft.com/en-us/library/ms235286.aspx](https///msdn.microsoft.com/en-us/library/ms235286.aspx)) but the short version is this: The first four parameters are transmitted via registers (RCX, RDX, R8, and R9), the rest are put on the stack. But windows still reserves 4 spaces on the stack right before the return address as 'home space' for the parameters that are transmitted via registers ( [https://msdn.microsoft.com/en-us/library/ew5tede7.aspx](https///msdn.microsoft.com/en-us/library/ew5tede7.aspx)).
 
 So this is what it looks like:
 
-	
+	```cpp	
 	...
 	Stack Space nt!NtCreateUserProcess will use
 	...
@@ -78,7 +78,7 @@ So this is what it looks like:
 	7th Parameter
 	...
 	Stack of calling function
-	
+	```
 
 
 And NtCreateuserProcess has a lot of parameters. And as far as I can tell it isn't officially documented so beware that we are entering dangerous waters here. Luckily enough we are not the only ones looking at the windows kernel so google gave me a what is likely the correct function declaration:
