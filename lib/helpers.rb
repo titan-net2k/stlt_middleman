@@ -46,19 +46,35 @@ module Helpers
         concat(partial('layouts/partials/spoiler', locals: {heading: heading, content: content, type: type}))
 	end
 
+	#garbage code
 	def prev_next_links
-		sorted_siblings = current_page.parent.children.each.sort_by { |a| a.data.title }
+		return '' if current_page.parent.nil?
+		
+		siblings = current_page.parent.children
+		
+		if siblings.count == 1 
+			return '' if current_page.children.nil? 
+			sorted_children = current_page.children.each.sort_by { |a| a.data.title }
+			s = link_to('Next: ' +sorted_children.first.data.title, sorted_children.first.path) + '    '
+			return s
+		end
+		
+		sorted_siblings = siblings.each.sort_by { |a| a.data.title }
 		sorted_siblings.insert(0, current_page.parent)
     	sorted_siblings.each_with_index do | sibling, index |
 	      	if sibling.url == current_page.url
 	        	s = ''
-	        	prev_page = sorted_siblings[index-1]
-	        	next_page = sorted_siblings[index+1]
-	        	unless index == 0
+	        	#return index.to_s
+	        	if index == 1
+	        		s += link_to('Top: ' +current_page.parent.data.title, current_page.parent.url) + '    '
+	        		s += '<br>'
+	        	else
+	           		prev_page = sorted_siblings[index-1]
 	        		s += link_to('Pevious: ' +prev_page.data.title, prev_page.path) + '    '
 	        		s += '<br>'
 	        	end
 	        	unless index == (sorted_siblings.size-1)
+	        		next_page = sorted_siblings[index+1]
 	        		s += link_to('Next: ' + next_page.data.title, next_page.path) 
 	        	end
 	        	return s

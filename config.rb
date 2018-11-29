@@ -16,7 +16,6 @@ page '/*.json', layout: false
 page '/*.txt', layout: false
 
 page "/tutorials/*", :layout => "tutorial"
-#page "/tutorials/index.html", :layout => "layout"
 
 #require 'redcarpet'
 activate :syntax

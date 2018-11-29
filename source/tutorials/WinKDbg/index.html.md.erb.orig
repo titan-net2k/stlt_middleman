@@ -1,9 +1,17 @@
 ---
+<<<<<<< HEAD
 title: 'Reverse Enineering Windows (10)'
-series: 'WinKDBG
 ---
 
 # <%= current_page.data.title %>
+=======
+title: 'Windows (10) Kernel Debugging'
+series: 'WinKDBG'
+---
+
+
+#  1. Windows kernel debugging
+>>>>>>> update
 
 ...using virtual machines and Windbg
 
