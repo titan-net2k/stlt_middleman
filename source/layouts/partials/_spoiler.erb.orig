@@ -1,5 +1,9 @@
 <details><summary><%=heading%></summary>
   <div markdown="1" class="notification is-dark">
+<<<<<<< HEAD
+    <%= concent %>
+=======
   	<%=content %>
+>>>>>>> 1aa54b349e220e93f47674ac462deb79f4147444
   </div>
 </details>

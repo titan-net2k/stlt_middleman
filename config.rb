@@ -18,10 +18,12 @@ page '/*.txt', layout: false
 page "/tutorials/*", :layout => "tutorial"
 #page "/tutorials/index.html", :layout => "layout"
 
-require 'redcarpet'
+#require 'redcarpet'
 activate :syntax
 set :markdown_engine, :kramdown
-set :markdown, input: 'GFM'#,parse_block_html: true
+set :markdown, 
+  input: "GFM", 
+  syntax_highlighter: "coderay"
 
 #set :markdown_engine, :redcarpet
 #set :markdown, tables: true, autolink: true, with_toc_data: true, no_intra_emphasis: true, fenced_code_blocks: true, lax_spacing: true

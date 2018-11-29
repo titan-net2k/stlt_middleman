@@ -19,33 +19,33 @@ Quick rundown what you have to do to set up a kernel debugging session:
   * This one will definitely need an internet connection
 3. Check network settings. 
      
-  ```bash
-    # On Debugger:
-    netsh interface ipv4 show config
-    -> get IP of Host-Only network adapter 
+``` bash
+  # On Debugger:
+  netsh interface ipv4 show config
+  -> get IP of Host-Only network adapter 
 
-    netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow
+  netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow
 
-    # On Debugee:
-    ping <Debugger-IP>
+  # On Debugee:
+  ping <Debugger-IP>
 
-    # Once again on the debugger:
-    netsh advfirewall firewall delete rule name="ICMP Allow incoming V4 echo request"
-  ```
+  # Once again on the debugger:
+  netsh advfirewall firewall delete rule name="ICMP Allow incoming V4 echo request"
+```
 
 4. Set up debugging more on the debugee 
   * Open an elevated command prompt 
       
-    ```bash
-    bcdedit /debug on
-    bcdedit /dbgsettings net hostip:<DEBUGGER IP> port:<PORT between 49152 and 65535>
-    # -> this returns a key you have to copy/paste onto the debugger
-    # Example for the default Virtualbox host network:
-    bcdedit /dbgsettings net hostip:192.168.56.1 port:50001 key:the.secret.debug.key 
+``` bash
+  bcdedit /debug on
+  bcdedit /dbgsettings net hostip:<DEBUGGER IP> port:<PORT between 49152 and 65535>
+  # -> this returns a key you have to copy/paste onto the debugger
+  # Example for the default Virtualbox host network:
+  bcdedit /dbgsettings net hostip:192.168.56.1 port:50001 key:the.secret.debug.key 
 
-    # For multiple network cards you may need to set an additional parameter, the busparams are under "location" in the device manager:
-    bcdedit /set "{dbgsettings}" busparams <X.Y.Z>
-    ```
+  # For multiple network cards you may need to set an additional parameter, the busparams are under "location" in the device manager:
+  bcdedit /set "{dbgsettings}" busparams <X.Y.Z>
+```
   1. Shutdown the debugee (absolutely required with Windows10 1709 in VirtualBox) and start it up again
   2. On the debugger go to the windows app store and install WinDbg Preview
   3. Open WinDbg Preview, select kernel debugging and put in the port and key from above
@@ -81,7 +81,7 @@ The actual steps:
   2. Set up a host-only network for you virtual machine(s) (or whatever network you want as ).
   3. [optional] Check network connection 
   
-  ```bash
+``` bash
     ipconfig /all
     netsh interface ipv4 show config
     -> ping
@@ -93,10 +93,10 @@ The actual steps:
     # Optionally: Set up static ip
     netsh interface show interface
     netsh interface ipv4 set address name="<name>" static <IP> <SUBNET_MASK> <GATEWAY>
-  ```
+```
   4. Activate kernel debugging 
   
-  ```bash
+``` bash
     bcdedit /debug on
     bcdedit /dbgsettings net hostip:<DEBUGGER IP> port:<PORT between 49152 and 65535>
     # -> this returns a key you have to copy/paste onto the debugger
@@ -105,7 +105,7 @@ The actual steps:
 
     # For multiple network cards you may need to set an additional parameter, the busparams are under "location" in the device manager:
     bcdedit /set "{dbgsettings}" busparams <X.Y.Z>
-  ```
+```
   5. **Shutdown virtual debugee machine** (absolutely needed in Virtualbox, otherwise nothing will happen)
   6. Start the Debugee and it should hang and wait for a debugger to listen on the given IP and port
   7. On the Debugger run windbg, select kernel debug and enter the port and key from above
@@ -122,7 +122,7 @@ Just create a link to your debugger and add `-k net:port=<PORT>,key=<KEY>` as co
 
 As soon as the debugger is connected you should set up your symbol path. You can set it as a system variable or in the WinDbg or WinDbg Preview((For me Windbg Preview read the symbol path from the system variable but forgot it immediately afterwards.)) GUI.
 
-```bash
+``` bash
   # Administrative cmd or powershell:
   setx /m _NT_SYMBOL_PATH "SRV*c:\symbols*http://msdl.microsoft.com/download/symbols"
 
