@@ -24,7 +24,7 @@
 		</aside>
   
 		<div class="column content">
-				<%= prev_next_links %>
+				<%= prev_next_links unless current_page.data.series.nil?%>
 	    		<%= yield %>
 	    	
 		</div>
