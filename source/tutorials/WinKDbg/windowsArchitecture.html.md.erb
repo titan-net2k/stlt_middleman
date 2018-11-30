@@ -74,7 +74,7 @@ Apart from type all objects fall into two categories: Kernel and Executive objec
 
 Related to object are handles. If a user requests access to a file the kernel create a file object and gives the user access to it, so he can use it to read from the file or whatever. But the kernel doesn't hand over a pointer to the object but a handle. This handle is simply a number that can be used to access the object via the handle table. Reasons for this are once again security, stability and all that. It also simplifies 'garbage collection' (using the term loosely): if all handles pointing to a certain object are closed the object itself can be destroyed. 
 
-We will look at object and handles more closely in [Part4b: processes](../objectsl).
+We will look at object and handles more closely in [Part4b: processes](../processes).
 
 ### Linked Lists
 

@@ -9,13 +9,13 @@ title: 1. Setting up Kernel Debugging
 
 Quick rundown what you have to do to set up a kernel debugging session:
 
-1. Create a virtual Windows machine, this will be the //"debugee"//
-  * Download and install Oracle VirtualBox [[https://www.virtualbox.org/]]
-  * Download MsEdge Test Machine [[https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/]] for virtualbox
+1. Create a virtual Windows machine, this will be the `debugee`
+  * Download and install Oracle VirtualBox <https://www.virtualbox.org/>
+  * Download MsEdge Test Machine <https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/> for virtualbox
   * Unpack and import the ova file into Virtualbox to create a virtual machine
   * Start the machine and execute `lmgr /rearm` in an elevated command prompt (Right click on start -> PowerShell (admin)) to activate a 90 day trial period
   * Go to virtual machine settings -> network and switch from NAT to host-only-adapter (or add a second host-only adapter if you still want internet access)
-2. If you don't want to use your host machine as debugger create a second virtual machine as //"debugger"//
+2. If you don't want to use your host machine as debugger create a second virtual machine as `debugger`
   * This one will definitely need an internet connection
 3. Check network settings. 
      
