@@ -37,11 +37,11 @@ And while we are doing calculations we also need to look at pointers.
 
 ## Pointers
 
-<% spoiler("Pointers?") do%>
-Pointers are variables that point (duh!) to memory locations. They are a big deal inside computers. For example an array in c is just a pointer to a place in memory. The array content at position x is accessed by accessing it's address+x*sizeof(whatever_the_array_holds). If you tell your c compiler you need an array of a 100 elements and then go and access position 200 -> no problem, it's just numbers. Of course this way stupid things can happen and that it why many programming languages don't give programmers direct access to pointers. But they are still everywhere inside and they are everywhere inside the windows kernel. And even deeper: in the last part I already talked about the Instruction **Pointer** (rip register on x64) that points to the memory location where the CPU will find the next instruction it should execute.
+<% spoiler("Pointers?") do %>
+Pointers are variables that point (duh!) to memory locations. They are a big deal inside computers. For example an array in c is just a pointer to a place in memory. The array content at position x is accessed by accessing it's `address+x*sizeof(whatever_the_array_holds)`. If you tell your c compiler you need an array of a 100 elements and then go and access position 200 -> no problem, it's just numbers. Of course this way stupid things can happen and that it why many programming languages don't give programmers direct access to pointers. But they are still everywhere inside and they are everywhere inside the windows kernel. And even deeper: in the last part I already talked about the Instruction **Pointer** (rip register on x64) that points to the memory location where the CPU will find the next instruction it should execute.
 
 Just on semantics: 'Dereferencing a pointer' stands for 'retrieving the actual address it points add'.
-`</spoiler>`
+<% end %>
 
 Pointers can be dereferenced in MASM syntax by using the `poi` command. If you have some pointer inside the rax register you can use `dp rax L1` to get the address it points at and this address with another `d~ <address> L1` (~ depends on the data type: a, b, q, p.. ) to look at the actual data. Or you can use `d~ poi(rax)` to do the same in one command. 
 
