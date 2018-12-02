@@ -1,5 +1,5 @@
 ---
-title: 'Middleman vs Hugo'
+title: 'Middleman vs Hugo vs Grav vs all the Rest'
 series: 'Articles'
 ---
 
@@ -7,7 +7,15 @@ series: 'Articles'
 
 ## Intro
 
-This site used to be based on dokuwiki which is in my humble opinion one of the most universally useful things anyone could ever put on a webspace. It can be used to create a website, a blog, a CMS or a full blown colloboration suite. It can even be used as a wiki engine. And all of it based around easy to handle .txt files. It only and mayor downside is that it still looks like the internet used to look in 2004. And I wanted my website to look reasonably modern and so I was forced to look for an alternative. 
+This site used to be based on dokuwiki which is in my humble opinion one of the most universally useful things anyone could ever put on a webspace. It can be used to create a website, a blog, a CMS or a full blown colloboration suite. It can even be used as a wiki engine. And all of it based around easy to handle .txt files. Dokuwiki has only two downsides: It still looks like the internet used to look in 2004 and it is written in PHP. I wanted my website to look reasonably modern and since my brain refuses to program PHP I was forced to look for an alternative. 
 
-## 
+### Choices
+
+There are tons of choices for frameworks to build a website. The big kids - Wordpress, Joomla and Drupal - seemed entirely too complicated for my needs. Flat file content management systems like Grav and Pico looked like a neat idea. But the idea of a static site generator sounded extremely appealing so I ended up with Hugo.
+
+### Static Site Generator
+
+A static site generator is just a piece of software that takes a website written in some template language and creates a static website. It can still contain javascript to do fancy client side interactivity but the server never does anything than hand the created html+javascript+css to the client. Which has enourmous implications: Since the webserver has virtually nothing to do than hand out files it is much more scalable and possibly faster. And most security problems of content management systems simply don't exist. There are downsides of course. Everyone working on the website need to have a build environment. And collaboration needs to happen off site, meaning on github or some private repository. And fancy interactive stuff (Comments, Guestbooks) is impossible (duh!). 
+
+### Markdown
 
