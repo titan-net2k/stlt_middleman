@@ -1,0 +1,93 @@
+---
+title: 1. Setting up the Exploiting Lab
+series: 'WinExp1'
+---
+
+# <%= current_page.data.title %>
+
+The required lab setup is similar to what I explained in the [Kernel Reverse Engineering Tutorial](../WinReverseEng/setup/). The main difference is that this time around we need more tools and we will crash windows a lot more often. It is still possible to use host-to-vm debugging but if at all possible I recommend a vm-to-vm setup. It makes it easier to try out new tools without cluttering (or crashing in some the host machine and you can be more lazy in choosing what you execute on the (internet connected) debugger and what you transfer and run from the debugee. Another reason is that using your host machine to download and develop malware will get you in trouble with your local antivirus/firewall solution - at the very least with windows defender - and having a virtual machine where you have no firewall and disabled windows defender makes things easier.
+
+Choosing the correct virtualization plattform is a bit more difficult. In the very first tutorial we will run into a difference between real computers / VmWare VMs and VirtualBox / HyperV machines because neither VirtualBox nor Hyper-V virtualize SMEP (more on that later). It's not he end of the world you just have to be aware of the difference. I switched to VmWare Workstation and regret the decision frequently because I find that VirtualBox is easier to use. 
+
+### Hardware
+
+  * Windows (10) “Debugger” VM connected to NAT and internal/host only network, can also be your host machine
+  * Windows 10 “ExploitDev” VM connected to internal/host only network
+  * A partition/folder shared between the virtual machines where everything is stored
+
+
+### Software
+
+I prefer having a fat Debugger with all the necessary compilers, tools etc and a thin debugee with just the bare minimum. This makes it easier to reset the debuggee or replace it with another releasel version but it also requires copying the necessary files around all the time. The alternative would be to have a fat debugee with all the dev tools.
+
+What you need is:
+
+  * A text editor: Notepad, Notepad++, Visual Studio
+  * A c compiler: Mingw-64, (Microsoft's) cl.exe
+  * A asm compiler: masm, nasm, goasm
+  * Something to extact the byte code (~the shellcode) from the compiled binary: keystone framework, HxD (Hex editor)
+  * (Optional) Versioning: git, 
+  * (Optional) Driver loader: OSR Driver loader
+  * Assorted reverse engineering tools and debuggers: IDA, Radare2, Sysinternals...
+
+If you have no preferences I would recommend starting with Notepad++, Mingw-64 as C compiler, NASM as assembly compiler and HxD to extract byte code. That's the easiest way to get started and what I will use in my examples. If you want you can try the Microsoft toolchain: masm, link and cl - they are all contained in the EWDK. ANd once you start with serious exploit development you may want to switch to Visual Studio and MsBuild for easier project handling.
+
+My personal list of software I put into my exploit dev share:
+
+```
+   - Vivaldi 
+   - Total Commander
+   - Freefilesync
+   - Windbg
+   - PyKD
+   - IDA free
+   - Radare2
+   - Sysinternals
+   - Notepad++
+   - EWDK
+   - MinGW
+   - GoASM/GoLink
+   - keystone framework
+   - HxD
+   - nasm
+   - git, meld
+   - (OSR driver loader)
+   - (Visual Studio)
+```
+
+### Last steps
+
+All the commandline compilers should ne put into the PATH variable: nasm, goasm / golink, keystone, mingw-64, masm. And check the power settings, on default windows settings your virtual machines will go asleep if left unattended for too long and the debugging connection may not survive that. 
+
+## HEVD
+
+*HEVD* is short for [HackSys Extreme Vulnerable Driver](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver). It will be our easy (and not so easy) way into the kernel.
+
+It's a driver specifically programmed to be vulnerable to typical driver vulnerabilities. It hasn't been signed by Microsoft (I wonder why?) so in order to load it you have to either disable "Driver Signature Enforcement" via the Windows 10 special startup menu or attach a kernel debugger. The latter should be the obvious choice since it will also help us in debugging the driver and our exploit. Windows will still complain that the driver is unsigned but will load it anyway. Just try without the attached debugger and you will see the difference. 
+
+Get the *OSR driver loader* if you prefer a gui to load the driver or just use the command line:
+
+```bash
+	#register driver
+	sc create HEVD type= kernel start= demand error= normal DisplayName= HEVD binpath= c:\dev\HEVD.sys
+	#sc description HEVD HEVD
+	sc start HEVD
+	sc stop HEVD
+	# unregister driver:
+	sc delete HEVD
+```
+
+You can now switch to Windbg on the Debugger VM and 'lm' should show HEVD.sys among the modules. You may need to '.reload' or try '.lmv'. At this point you could start exploiting but I would recommend copying the symbols file 'HEVD.pdb' into your (custom) Symbols folder and run '.reload'. Try out if it worked by using 'x HEVD!*'. It should look something like:
+
+```cppp
+kd> x HEVD!*
+fffff803`7b063110 HEVD!g_UseAfterFreeObject = 0x00000000`00000000
+fffff803`7b063108 HEVD!__security_cookie_complement = 0xffff07fc`845d6aad
+fffff803`7b062368 HEVD!$xdatasym = 0x01 ''
+fffff803`7b062388 HEVD!$xdatasym = 0x01 ''
+fffff803`7b063000 HEVD!HotPatchBuffer = struct _PATCH_BUFFER
+fffff803`7b063100 HEVD!__security_cookie = 0x0000f803`7ba29552
+fffff803`7b065008 HEVD!TriggerDoubleFetch (struct _DOUBLE_FETCH *)
+fffff803`7b065c5c HEVD!TriggerNullPointerDereference (void *)
+fffff803`7b065dd4 HEVD!NullPointerDereferenceIoctlHandler (struct _IRP *, struct _IO_STACK_LOCATION *)
+```

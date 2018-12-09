@@ -15,25 +15,25 @@ layout: 'layout'
 
 <div class="tile is-ancestor s-pad-1">
   <div class="tile is-vertical is-8">
-    <% link_to 'tutorials/WinKDbg' do %>
+    <% link_to 'tutorials/WinReverseEng' do %>
       <div class="tile is-parent">
         <article class="tile is-child notification is-primary is-bold">
           <p class="title">Tutorial series</p>
-          <p class="subtitle">Windows Kernel Debugging</p>
-          How to stop worrying and learn to use WinDBG to become a better person.
+          <p class="subtitle">Reverse Engineering Windows (10)</p>
+          ..it's not all that difficult really..
           <figure class="image is-4by4">
-            <%= image_tag 'tutorials/WinKDbg/img/part4_cheatengine.png'%>
+            <%= image_tag 'tutorials/WinReverseEng/img/part4_cheatengine.png'%>
           </figure>
         </article>
       </div>
     <%end%>
     <div class="tile">
-      <% link_to 'tutorials/WinExp', class: "tile is-parent" do%> 
+      <% link_to 'tutorials/WinExp1', class: "tile is-parent" do%> 
         
         <article class="tile is-child notification is-warning is-bold">
             <p class="title">Tutorial Series</p>
             <p class="subtitle">Windows Exploitation</p>
-            Use the knowledge gained in the Kernel debugging tutorials to write windows shellcode.
+            Use the knowledge gained in the Reverse Engineering tutorials to write some shellcode and exploit windows.
             <%= image_tag 'wip_128.png' %>
             <!--
             <figure class="image">

@@ -52,10 +52,11 @@ module Helpers
 		
 		siblings = current_page.parent.children
 		
-		if siblings.count == 1 
+		if current_page.parent.path == 'tutorials/index.html'
+			#Tutorial series intro
 			return '' if current_page.children.nil? 
 			sorted_children = current_page.children.each.sort_by { |a| a.data.title }
-			s = link_to('Next: ' +sorted_children.first.data.title, sorted_children.first.path) + '    '
+			s = link_to('Next: ' +sorted_children.first.data.title, sorted_children.first.url) + '    '
 			return s
 		end
 		
@@ -70,12 +71,12 @@ module Helpers
 	        		s += '<br>'
 	        	else
 	           		prev_page = sorted_siblings[index-1]
-	        		s += link_to('Pevious: ' +prev_page.data.title, prev_page.path) + '    '
+	        		s += link_to('Pevious: ' +prev_page.data.title, prev_page.url) + '    '
 	        		s += '<br>'
 	        	end
 	        	unless index == (sorted_siblings.size-1)
 	        		next_page = sorted_siblings[index+1]
-	        		s += link_to('Next: ' + next_page.data.title, next_page.path) 
+	        		s += link_to('Next: ' + next_page.data.title, next_page.url) 
 	        	end
 	        	return s
 	      	end

