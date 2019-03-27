@@ -1,0 +1,78 @@
+---
+title: 'Building a penetration testing lab'
+series: 'BuildALab'
+---
+
+# <%= current_page.data.title %>
+.. with pfsense and virtual machines
+
+## About this Tutorial
+
+There are lot's of virtual machines you can download to practise basic ~~hacking~~ penetration testing. But how about pivoting through a network? Where do you practise that? In your own virtual lab network of course and I will show how. The first step will be a minimal lab network. If I find the time I will try to extend the tutorial with things like building an active directory.
+
+<%= img_frame('img/lab-network1.png', 'Homemade Lab Netork', '1000px') %>
+
+## Getting started
+
+The picture above is my idea for a minimal lab network. We will need three virtual networks: A public network that will host our attacking virtual machine and the route/firewall a dmz with a webserver and an internal network with a windows server that can only be accessed by pivoting through the DMZ. I will use private 10.*.*.* IP addresses, feel free to just copy paste mine or use something different.
+The minimal setup won't need much in terms of computing power I would still recommend to use a reasonably powerful workstation to build this lab on. You will definitly want to extend it and having a nice virtual lab in which you have to pause and unpause virtual machines all the time isn't much fun. Get a notebook with 16GB of memory and an SSD or take any reasonably modern PC with 32GB memory and you should be fine.
+
+
+## Virtualization and Networks
+
+I build this and similar labs on VMware workstation and virtualbox. It doesn't really make a big difference which one you take. I find Virtualbox a bit nicer to use but Vmware workstation is overall the better product. Hyper-V will probably work as well but I recommend staying away from it unless you know what you are doing. 
+
+We need three networks: A internet connected 'outside' network that will be our lab internet. Next a DMZ network that will house our internet connected servers and will be reachable from outside. Lastly we need an internal 'intranet' than can communicate with the servers in the DMZ (webserver, update server..)  but not with the internet directly. 
+
+The lab internet will be a NAT network. This will create a local network where computers can reach each other but also the internet by being natted to the host. DMZ and Intranet will be either host-only or internal networks. A Host-only network is a local network without internet connection that contains the host and an internal network is a local network without internet connection and without connection to the host. So using internal network would create a more realistic lab environment because you can't use the host to cheat. But it's also more annoying to use because you can't use putty/rdp or quickly use a browser to check if a certain webservice is still running and instead have to do everything via the virtual machines interface. I would recommend host-only networks, it makes your life a bit easier while not making much difference as far as the lab is concerned. Sidenote: this question is only really important for virtualbox users that have to make this selection on every virtual machine. Vmware workstation just has a checkbox to so select wether the host is connected to an internal network or not so you can just change it everytime you want.
+
+### Virtualbox
+
+The default network connection for most virtual machines is "NAT" meaning it is natted to the host network adapter but no on a specific network. The option to create a "NAT-Network" is hidden in File->Preferences->Network->Add Nat Network. The menu allows you to enable DHCP but in order to configure the DHCP options you have to use the console. 
+
+1. Use the gui to create a NAT Network but don't enable DHCP
+2. Add you virtualbox directory to you PATH variable and launch a commandline or powershell. This enables you to use 'vboxmanage' to launch custom virtualbox commands.
+3. Check your existing networks and add a dhcpserver:
+
+```
+    vboxmanage natnetwork list
+    vboxmanage list dhcpservers
+    vboxmanage dhcpserver add --netname NatNetwork --ip 10.22.1.2 --netmask 255.255.255.0 --lowerip 10.22.1.100 --upperip 10.22.1.200 --enable
+```
+
+This is one of the things virtualbox doesn't do very well. Using these commands should work but don't be surprised if you have to try again. Also be very careful if you mix using the gui and the commandline. Enabling and disabling the DHCP via the GUI will do nothing to a DHCP server you created on the command line. 
+
+Once you are done with the NAT-Network open the Host Network Manager (File -> Host Network Manager) and create two host-only networks, configure the IP addresses. Don't enable dhcp we will use dhcp server on the router.
+
+<%= img_frame('img/virtualbox-network-manager.png', 'Virtualbox Network Manager', '1000px') %>
+
+If you want to use internal networks: those are created inside the virtual machine settings by selecting a network adapter, selecting 'Internal Network' and giving it a name.
+
+<%= img_frame('img/lab-internal-network.png', 'Virtualbox internal network', '1000px') %>
+
+The host-only networks will be names 'VirtualBox Host-Only Ethernet Adapter #x'. Not a very nice name but there is no (at least no easy) way to change it so just remember which is which.
+
+### Vmware workstation
+
+In Vmware workstation you only need to open the virtual network editor and use the gui to create a NAT-Network with DHCP and two host-only (or internal) networks without dhcp. If you want you can also rename the networks to make it easier to remember which is which.
+
+
+### Creating the router 
+
+[Pfsense community](https://www.pfsense.org/download/)
+
+Pfsense is a open source firewall/router based on FreeBSD (wikipedia). There are other and possibly better options and there was a bit of a drama in 2018 about wether the pfsense community edition would be continued or not but it is still the most popular open source router/firewall and the one where you will most likely find help on google if you run into any problems. So just use it unless you have a really good reason to choose something else.
+
+The installation is pretty simple. Create a virtual machine for a freebsd 64Bit system with 512MB of memory, configure three network adapters to your internet - dmz - and intranet networks (The order is important!). If you want to squeeze out some extra performance try to use paravirtualized network adapters. In virtualbox that is Network->Advanced -> Adapter Type -> virtio-net. In vmware workstation the paravirtualized adapter is VMXNET 3
+
+Then install by always using the default choices. At the end of the installation you will be asked if you want to open a shell and do manual modifications. You don't! 
+
+<div class="modal">
+  <div class="modal-background"></div>
+  <div class="modal-content">
+      <img src="img/lab-internal-network.png" alt="">
+  </div>
+  <button class="modal-close is-large" aria-label="close"></button>
+</div>
+
+Lorem ipsum.!

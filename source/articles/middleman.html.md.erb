@@ -7,15 +7,35 @@ series: 'Articles'
 
 ## Intro
 
-This site used to be based on dokuwiki which is in my humble opinion one of the most universally useful things anyone could ever put on a webspace. It can be used to create a website, a blog, a CMS or a full blown colloboration suite. It can even be used as a wiki engine. And all of it based around easy to handle .txt files. Dokuwiki has only two downsides: It still looks like the internet used to look in 2004 and it is written in PHP. I wanted my website to look reasonably modern and since my brain refuses to program PHP I was forced to look for an alternative. 
+This site used to be based on dokuwiki which is in my humble opinion one of the most universally useful things anyone could ever put on a webspace. It can be used to create a website, a blog, a CMS or a full blown colloboration suite. It can even be used as a wiki engine. And all of it based around easy to handle .txt files. Dokuwiki has only two downsides: It still looks like the internet used to look in 2004 and it is written in PHP. I wanted my website to look reasonably modern and my brain refuses to understand PHP, so I was forced to look for an alternative. 
 
 ### Choices
 
-There are tons of choices for frameworks to build a website. The big kids - Wordpress, Joomla and Drupal - seemed entirely too complicated for my needs. Flat file content management systems like Grav and Pico looked like a neat idea. But the idea of a static site generator sounded extremely appealing so I ended up with Hugo.
+There are tons of choices for frameworks to build a website. The big kids - Wordpress, Joomla and Drupal - seemed entirely too complicated for my needs. Flat file content management systems like Grav and Pico looked like a neat idea. But the idea of a static site generator sounded extremely appealing so I wanted to try that. Popular ones are:
+
+[Hugo](https://gohugo.io)
+[Grav](https://getgrav.org)
+[Middleman](https://middlemanapp.com)
 
 ### Static Site Generator
 
-A static site generator is just a piece of software that takes a website written in some template language and creates a static website. It can still contain javascript to do fancy client side interactivity but the server never does anything than hand the created html+javascript+css to the client. Which has enourmous implications: Since the webserver has virtually nothing to do than hand out files it is much more scalable and possibly faster. And most security problems of content management systems simply don't exist. There are downsides of course. Everyone working on the website need to have a build environment. And collaboration needs to happen off site, meaning on github or some private repository. And fancy interactive stuff (Comments, Guestbooks) is impossible (duh!). 
+A static site generator is just a piece of software that takes a website written in some template language and creates a static website. It can still contain javascript to do fancy client side interactivity but the server never does anything more than hand the created html+javascript+css to the client. Which has enourmous implications: Since the webserver has virtually nothing to do it is much more scalable and possibly faster. Also most security problems of content management systems simply don't exist. There are downsides of course. Everyone working on the website needs to have a build environment. And collaboration needs to happen off site, meaning on github or some private repository. And of course fancy interactive stuff that needs to be stored somewhere (Comments, Guestbooks) is impossible (duh!). 
 
 ### Markdown
 
+Most static site generators I found use markdown as markup language. And I am tempted to write _markdown sucks_. It doesn't. It is pretty good in providing a lightweight standard markup. And that makes markdown perfect for something like readme files. It's easy to write, easy to parse and even without a parser it's easy to read. At the same time it is totally inadequate for anything more sophisticated. Want a table? Doesn't exist. Code block with syntax highlighting? Not in core markdown. Add a subtext to an image? Nope. 
+That makes creating a website purely from markdown a bit of a joke. That is why many frameworks don't use pure markdown but some sort of extended version. On top of that all frameworks i tried had some way of manually extending their syntax. In hugo for example these extension are called shortcodes. You create your favbourite table style shortcode and then you use it side by side with markdown.
+
+### Site Templates
+
+Another thing a website framework need is some sort of template engine. Instead of creating a layout and copy pasting it all over the place the user creates or downloads a template and fills it with content.
+
+
+## Middleman vs Hugo vs Grav vs all the Rest
+
+When I tried Hugo I was immediately annoyed that everything apart from downloading a template and filling it with content seemed needlessly complicated. Creating a sidebar for intance is possible but totally unintuitive. Same with shortcodes. Writing my own shortcodes would have meant learning how to use hugos shortcode template language. So I tried another Grav, another static website generator that is supposedly more extendalbe and less aimed at blogging as hugo. But hte issues where the same. As soon as I wanted to do something a little different I ran into things that looks like work. And I just wanted to create a website, not learn another template language or two. 
+And so I ended up with Middleman. It's no quite as sophisticated as Hugo or Grav. But it used ruby at it's core. So every problem I had could be solved by writing a bit of plain ruby code. Or googling for a ruby on rails solution I could quickly adapt. 
+
+## So.. Middleman?
+
+Yes Middleman. Because at the end of the day it's just ruby and markdown. Two languages that are easy to learn and will be useful to know for the forseeable future.

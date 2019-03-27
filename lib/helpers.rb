@@ -18,25 +18,28 @@ module Helpers
 	end
 
 	def img_frame(image, caption, max_width='800px')
+		unless current_page.path.end_with? 'index.html'
+			image = '../'+image
+		end
 		concat(partial('layouts/partials/img_frame', locals:{image: image, caption: caption, max_width: max_width}))
 	end
 
 	def note(heading,type = 'info', &block)
 		if block_given?
-      content = capture_html(&block).to_s
-    else
-    	content = ''
-    end
-    concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
+      		content = capture_html(&block).to_s
+    	else
+    		content = ''
+    	end
+    	concat(partial('layouts/partials/note', locals: {heading: heading, message: content, type: type}))
 	end
 
 	def spoiler(heading, &block)
 		if block_given?
-      content = capture_html(&block).to_s
-    else
-    	content = ''
-    end
-		concat(partial('layouts/partials/spoiler', locals: {heading: heading, concent: content}))
+	      content = capture_html(&block).to_s
+	    else
+	    	content = ''
+	    end
+			concat(partial('layouts/partials/spoiler', locals: {heading: heading, concent: content}))
 	end
 
 	def spoiler(heading,type = 'info', &block)
@@ -54,7 +57,7 @@ module Helpers
 		
 		if current_page.parent.path == 'tutorials/index.html'
 			#Tutorial series intro
-			return '' if current_page.children.nil? 
+			return '' if current_page.children.empty?  #or current_page.children.nil?
 			sorted_children = current_page.children.each.sort_by { |a| a.data.title }
 			s = link_to('Next: ' +sorted_children.first.data.title, sorted_children.first.url) + '    '
 			return s

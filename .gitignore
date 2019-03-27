@@ -4,4 +4,7 @@
 .sass-cache
 build/
 vendor/local/
+vendor/bundle/
 .env
+Gemfile.lock
+node_modules

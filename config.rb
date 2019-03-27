@@ -30,7 +30,7 @@ set :markdown,
 
 activate :livereload
 
-set :css_dir, 'assets/css'
+set :css_dir, 'assets/stylesheets'
 set :js_dir, 'assets/javascript'
 set :images_dir, 'assets/images'
 set :layouts_dir, 'layouts'
@@ -69,6 +69,14 @@ helpers Helpers
 # Build-specific configuration
 # https://middlemanapp.com/advanced/configuration/#environment-specific-settings
 
+activate :external_pipeline,
+         name: :webpack,
+         command: build? ?
+         "./node_modules/webpack/bin/webpack.js --bail -p" :
+         "./node_modules/webpack/bin/webpack.js --watch -d --progress --color",
+         source: ".tmp",
+         latency: 1
+
 configure :development do
   set :debug_assets, true
   config[:host] = "http://localhost:4567"
@@ -81,6 +89,7 @@ configure :build do
   #activate :minify_javascript
 end
 
+=begin
 activate :deploy do |deploy|
   deploy.deploy_method   = :sftp
   deploy.host            = ENV['middleman_host']
@@ -89,3 +98,4 @@ activate :deploy do |deploy|
   deploy.user            = ENV['middleman_user']
   deploy.password        = ENV['middleman_password']
 end
+=end
