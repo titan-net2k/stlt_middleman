@@ -11,11 +11,45 @@ This site used to be based on dokuwiki which is in my humble opinion one of the 
 
 ### Choices
 
-There are tons of choices for frameworks to build a website. The big kids - Wordpress, Joomla and Drupal - seemed entirely too complicated for my needs. Flat file content management systems like Grav and Pico looked like a neat idea. But the idea of a static site generator sounded extremely appealing so I ended up with Hugo.
+There are tons of choices for frameworks to build a website. The big kids - Wordpress, Joomla and Drupal - seemed entirely too complicated for my needs. Flat file content management systems like Grav and Pico looked like a neat idea. But the idea of a static site generator sounded extremely appealing so I ended up with Hugo. Hugo it written in Go so it is pretty much the coolest of the bunch.
 
 ### Static Site Generator
 
-A static site generator is just a piece of software that takes a website written in some template language and creates a static website. It can still contain javascript to do fancy client side interactivity but the server never does anything than hand the created html+javascript+css to the client. Which has enourmous implications: Since the webserver has virtually nothing to do than hand out files it is much more scalable and possibly faster. And most security problems of content management systems simply don't exist. There are downsides of course. Everyone working on the website need to have a build environment. And collaboration needs to happen off site, meaning on github or some private repository. And fancy interactive stuff (Comments, Guestbooks) is impossible (duh!). 
+A static site generator is just a piece of software that takes a website written in some template language and creates a static website. It can still contain javascript to do fancy client side interactivity but the server never does anything more than hand the created html+javascript+css to the client. Which has enormous implications: Since the webserver has virtually nothing to do than hand out files it is much more scalable and possibly faster. And most security problems of content management systems simply don't exist. There are downsides of course. Everyone working on the website needs to have a build environment. And collaboration needs to happen off site, meaning on github or some private repository. Also any fancy interactive stuff (Comments, Guestbooks) is impossible (duh!). But then again living in germany a comments sections for a private website is a legal minefield anyway.
 
-### Markdown
+### Back to the story
 
+So as I said I ended up using Hugo as static site generator. It has a theme engine and my hope was that I could use a nice theme to jumpstart my website rework. Of course it didn't work. I wanted to leave the beaten path and use something insanely complicated - a website with a sidebar only on sepcific subpages. There is probably a way to do that in Hugo but it's not covered by the documentation or available tutorials which all focus on BLOGS. 
+
+### Middleman
+
+Middleman came to my rescue by virtue of using ruby and the ERB template file format. Using middleman and armed with some basic understanding of html anything can be implemented in plain ruby. For example a basic loops that creates the sidebar for my tutorial series: 
+
+```
+<aside class="column is-2 is-fullheight section is-hidden-mobile">
+    <p class="menu-label is-hidden-touch">Tutorial Series</p>
+    <ul class="menu-list"><li>
+    <%% tutorial_series = current_page.parent.parent.path == 'tutorials/index.html' ? current_page.parent : current_page %>
+		<%%= link_to tutorial_series.data.title, tutorial_series.url %> 
+      	<ul>
+      		<%% sorted_episodes = tutorial_series.children.each.sort_by { |a| a.data.title } %>
+      		<%% sorted_episodes.each do | episode | %>
+      			<li><%%= link_to episode.data.title, episode.url %> </li>
+  			<%% end %>
+  		</ul>
+  	</li></ul>
+</aside>
+```
+
+There are probably a lot of ways to do this "better", but this solution took just 5 minutes of scetching the html code and 5 minutes of googling how to do a sorted for/each loop in ruby.
+
+As far as javascript and CSS are concerned middleman supports sass/scss as well as ERB to make simple things relatively easy. Using 3rd party javascript, jquery, bootstrap and so on, is possible but only through the ususal hell of asset pipelines and uninformative error messages. I used bulma, a static css library and some hand"coded" javascript. 
+
+The actual site content is written in markdown, I think that is the same for most static site generators. I use ruby kramdown which supports github flavored markdown which is nice. What is useful is that it is relatively simple to add new features to markdown pages using ERB.
+
+
+### Final Verdict
+
+I would have preffered to have a bit more in terms of features and documentation but in the end Middleman was a fairly good solution to my problem. The winning point for me is the inbuilt quality of not having to update a hosted web-framework and being able to solve things using simple solutions and without getting deeply into web development.
+
+There are several alternatives to chose from and I won't claim that Middleman is in any way "the best". Nanoc, also based on ruby looks fairly good or pelican for all the people who prefer python. 

