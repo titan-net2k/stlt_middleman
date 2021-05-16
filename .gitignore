@@ -2,6 +2,7 @@
 .cache
 .DS_Store
 .sass-cache
+.byebug_history
 build/
 vendor/local/
 .env
